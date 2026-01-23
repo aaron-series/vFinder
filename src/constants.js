@@ -61,7 +61,7 @@ export const INITIAL_SETTINGS_DATA = {
 
 // Process Order 옵션
 export const PROCESS_ORDER_OPTIONS = [
-  { value: '', label: 'Select a process...', disabled: true },
+  { value: '', label: 'Select a process...'},
   { value: 'STEP 01', label: 'STEP 01' },
   { value: 'STEP 02', label: 'STEP 02' },
   { value: 'STEP 03', label: 'STEP 03' },
@@ -76,7 +76,7 @@ export const PROCESS_ORDER_OPTIONS = [
 
 // Process Selection 옵션
 export const PROCESS_SELECTION_OPTIONS = [
-  { value: '', label: 'Select a process...', disabled: true },
+  { value: '', label: 'Select a process...' },
   { value: 'stitching', label: 'Stitching' },
   { value: 'cutting', label: 'Cutting' },
   { value: 'pressing', label: 'Pressing' }
