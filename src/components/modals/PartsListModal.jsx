@@ -1,11 +1,53 @@
-const PartsListModal = ({ isOpen, onClose, patterns, reorderPatterns, draggedRowIndex, setDraggedRowIndex }) => {
+import Swal from 'sweetalert2'
+
+const PartsListModal = ({ isOpen, onClose, patterns, reorderPatterns, removePattern, draggedRowIndex, setDraggedRowIndex }) => {
   if (!isOpen) return null
+
+  const handleRemove = async (e, partId) => {
+    e.stopPropagation()
+    
+    const part = patterns.find(p => p.id === partId)
+    const partCode = part?.code || 'This part'
+    
+    const result = await Swal.fire({
+      title: 'Remove Parts',
+      html: `<u>${partCode}</u> will be removed.<br/>Are you sure you want to remove it?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Remove',
+      cancelButtonText: 'Cancel',
+      width: '440px',
+      padding: '20px',
+      customClass: {
+        container: 'swal2-container-high-z'
+      }
+    })
+    
+    if (result.isConfirmed) {
+      removePattern(partId)
+      Swal.fire({
+        title: 'Remove Completed',
+        text: 'Parts has been removed.',
+        icon: 'success',
+        confirmButtonColor: '#1f2937',
+        width: '380px',
+        padding: '20px',
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: {
+          container: 'swal2-container-high-z'
+        }
+      })
+    }
+  }
 
   return (
     <div className="parts-list-modal-overlay" onClick={onClose}>
       <div className="parts-list-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="parts-list-modal-header">
-          <h2 className="parts-list-modal-title">Part List</h2>
+          <h2 className="parts-list-modal-title">Parts List</h2>
           <button className="parts-list-modal-close" onClick={onClose}>×</button>
         </div>
 
@@ -78,7 +120,13 @@ const PartsListModal = ({ isOpen, onClose, patterns, reorderPatterns, draggedRow
                     <span className="layer-name">{part.layerName}</span>
                   </td>
                   <td className="menu-cell">
-                    <button className="parts-list-menu-btn">⋮</button>
+                    <button 
+                      className="parts-list-menu-btn"
+                      onClick={(e) => handleRemove(e, part.id)}
+                      title="Remove"
+                    >
+                      ×
+                    </button>
                   </td>
                 </tr>
               ))}

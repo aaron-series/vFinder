@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Swal from 'sweetalert2'
 import useRoutingStore from './store/useRoutingStore'
 import logo from './assets/logo.png'
 import nikeLogo from './assets/nike_logo.png'
@@ -18,6 +19,7 @@ function App() {
     patterns,
     setPatterns,
     reorderPatterns,
+    removePattern,
     showModal,
     setShowModal,
     isBasicInfoExpanded,
@@ -25,6 +27,21 @@ function App() {
     isPatternPartsExpanded,
     setIsPatternPartsExpanded
   } = useRoutingStore()
+
+  // 모달이 열릴 때마다 Model, Dev. Style, Category, Size 초기화
+  useEffect(() => {
+    if (showModal) {
+      // fileName은 유지하고 나머지 필드만 초기화
+      setFormData({
+        fileName: formData.fileName || '',
+        model: 'HO24 AIR MAX MUSE PROD 1209',
+        devStyle: '',
+        category: '',
+        size: ''
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showModal])
 
   // 드래그 앤 드롭 상태
   const [draggedIndex, setDraggedIndex] = useState(null)
@@ -168,6 +185,46 @@ function App() {
 
   const handleInputChange = (field, value) => {
     updateFormField(field, value)
+  }
+
+  const handlePatternRemove = async (e, patternId) => {
+    e.stopPropagation()
+    
+    const pattern = patterns.find(p => p.id === patternId)
+    const patternCode = pattern?.code || 'This pattern'
+    
+    const result = await Swal.fire({
+      title: 'Remove Parts',
+      html: `<u>${patternCode}</u> will be removed.<br/>Are you sure you want to remove it?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Remove',
+      cancelButtonText: 'Cancel',
+      width: '440px',
+      padding: '20px',
+      customClass: {
+        container: 'swal2-container-high-z'
+      }
+    })
+    
+    if (result.isConfirmed) {
+      removePattern(patternId)
+      Swal.fire({
+        title: 'Remove Completed',
+        text: 'Parts has been removed.',
+        icon: 'success',
+        confirmButtonColor: '#1f2937',
+        width: '380px',
+        padding: '20px',
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: {
+          container: 'swal2-container-high-z'
+        }
+      })
+    }
   }
 
   const handleGeneration = () => {
@@ -421,7 +478,13 @@ function App() {
                           <span className="layer-name">{pattern.layerName}</span>
                         </div>
                         <div className="pattern-col pattern-col-menu">
-                          <button className="pattern-menu-btn">⋮</button>
+                          <button 
+                            className="pattern-menu-btn"
+                            onClick={(e) => handlePatternRemove(e, pattern.id)}
+                            title="제거"
+                          >
+                            ×
+                          </button>
                         </div>
                       </div>
                     ))}

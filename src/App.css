@@ -629,16 +629,24 @@
 .pattern-menu-btn {
   background: none;
   border: none;
-  font-size: 18px;
-  color: #999;
+  font-size: 20px;
+  font-weight: bold;
+  color: #dc2626;
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pattern-menu-btn:hover {
-  background-color: #f0f0f0;
+  background-color: #fee2e2;
+  color: #991b1b;
 }
 
 /* Generation Button */

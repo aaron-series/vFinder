@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import { formatCategory } from '../../utils'
 
-const EditorMetaBar = ({ formData, onReset }) => {
+const EditorMetaBar = ({ formData, onReset, onSave }) => {
   const navigate = useNavigate()
 
   const handleExit = () => {
@@ -21,6 +21,12 @@ const EditorMetaBar = ({ formData, onReset }) => {
         navigate('/')
       }
     })
+  }
+
+  const handleSave = () => {
+    if (onSave) {
+      onSave()
+    }
   }
 
   return (
@@ -51,7 +57,7 @@ const EditorMetaBar = ({ formData, onReset }) => {
           </svg>
           Reset
         </button>
-        <button className="btn-save">
+        <button className="btn-save" onClick={handleSave} title="Save">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12.667 14H3.333A1.333 1.333 0 012 12.667V3.333A1.333 1.333 0 013.333 2h7.334L14 5.333v7.334A1.333 1.333 0 0112.667 14z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             <path d="M11.333 14v-5.333H4.667V14m0-12v3.333h5.333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

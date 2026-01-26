@@ -172,7 +172,7 @@ const PartNode = ({ data, isConnectable, id }) => {
               </svg>
             </button>
           </div>
-          <div className="node-step-input-wrapper">
+          <div className="node-step-input-wrapper" onClick={(e) => e.stopPropagation()}>
             <input
               type="text"
               value={data.stepValue || ''}
@@ -180,6 +180,8 @@ const PartNode = ({ data, isConnectable, id }) => {
               placeholder="Not yet selected process..."
               className="node-step-input"
               onClick={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
               readOnly={isConfirmed}
             />
           </div>

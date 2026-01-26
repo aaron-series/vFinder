@@ -62,6 +62,15 @@ const useRoutingStore = create((set) => ({
     }))
     return { patterns: updatedPatterns }
   }),
+  removePattern: (id) => set((state) => {
+    const filteredPatterns = state.patterns.filter(p => p.id !== id)
+    // no 값도 업데이트
+    const updatedPatterns = filteredPatterns.map((p, index) => ({
+      ...p,
+      no: String(index + 1).padStart(2, '0')
+    }))
+    return { patterns: updatedPatterns }
+  }),
 
   // 모달 상태
   showModal: false,
