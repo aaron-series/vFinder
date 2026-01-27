@@ -108,6 +108,7 @@ const PartNode = ({ data, isConnectable, id }) => {
                 onClick={(e) => e.stopPropagation()}
                 placeholder="Enter text..."
                 rows={4}
+                readOnly={isConfirmed}
               />
             </div>
           ) : data.thumbnail ? (

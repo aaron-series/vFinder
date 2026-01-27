@@ -13,17 +13,9 @@ export const LABEL_BOX_OFFSET_Y = 60 // CSS: top: calc(100% + 60px)
 
 // Category 코드와 이름 매핑
 export const CATEGORY_MAP = {
-  '01': "ROAD RUNNING",
-  '02': "T&F",
-  '03': 'RACING',
-  '04': "ACG",
-  '05': "TRAINING",
-  '06': "ICON",
-  '07': 'LAB',
-  '08': 'ENERGY',
-  '09': 'SPEED',
-  '10': "KIDS",
-  '11': "JORDAN"
+  '01': "M'S SPORTSTYLE INNOVATION",
+  '02': "W'S SPORTSTYLE INNOVATION",
+  '03': "M'S RUNNING",
 }
 
 export const CATEGORY_MAP_BACKUP = {

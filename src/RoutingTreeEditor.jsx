@@ -13,7 +13,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import dagre from 'dagre'
 import useRoutingStore from './store/useRoutingStore'
-import { showSmallAlert } from './utils'
+import { showSmallAlert, getKoreaTimeISOString, getKoreaTimeStamp } from './utils'
 import { NODE_WIDTH, NODE_HEIGHT, INITIAL_SETTINGS_DATA } from './constants'
 import { PartNode, GroupConnectorNode } from './components/nodes'
 import { CustomEdge } from './components/edges'
@@ -52,15 +52,17 @@ function EditorContent() {
   const [addedParts, setAddedParts] = useState([])
   const addedPartsRef = useRef(addedParts) // 최신 상태 참조용 Ref
   const [isEdgeConfirmed, setIsEdgeConfirmed] = useState(false) // 확정된 edge인지 확인
+  const [isExportingImage, setIsExportingImage] = useState(false) // 이미지 내보내기 로딩 상태
   
   // React Flow 인스턴스 (좌표 변환용)
   const [rfInstance, setRfInstance] = useState(null)
 
   // 중복 호출 방지를 위한 ref
   const confirmingRef = useRef(new Set())
+  const isRestoredRef = useRef(false) // localStorage 복원 여부 추적
 
   // 저장 기능
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     // 현재 상태 수집
     // formData를 명시적으로 복사하여 저장 (모든 필드 포함)
     const savedFormData = {
@@ -68,12 +70,13 @@ function EditorContent() {
       model: formData?.model || '',
       devStyle: formData?.devStyle || '',
       category: formData?.category || '',
+      gender: formData?.gender || '',
       size: formData?.size || ''
     }
     
     const saveData = {
       version: '1.0.0',
-      timestamp: new Date().toISOString(),
+      timestamp: getKoreaTimeISOString(),
       formData: savedFormData,
       patterns: patterns,
       nodes: nodes.map(node => ({
@@ -100,32 +103,127 @@ function EditorContent() {
     // Blob 생성
     const blob = new Blob([jsonString], { type: 'application/json' })
     
-    // 유니크한 파일명 생성 (timestamp 기반)
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+    // 유니크한 파일명 생성 (timestamp 기반, 한국 시간대)
+    const timestamp = getKoreaTimeStamp()
     const fileName = `routing-tree-${timestamp}.json`
     
     // 다운로드 링크 생성
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = fileName
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    // const url = URL.createObjectURL(blob)
+    // const link = document.createElement('a')
+    // link.href = url
+    // link.download = fileName
+    // document.body.appendChild(link)
+    // link.click()
+    // document.body.removeChild(link)
+    // URL.revokeObjectURL(url)
+
+    // localStorage에 저장 (새로고침 후 복원용)
+    try {
+      localStorage.setItem('routing-tree-canvas-state', JSON.stringify({
+        nodes: saveData.nodes,
+        edges: saveData.edges,
+        viewport: saveData.viewport,
+        timestamp: saveData.timestamp
+      }))
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error)
+    }
 
     // 성공 메시지 표시
     Swal.fire({
       title: 'Save Completed',
-      text: `File saved as ${fileName}`,
+      text: `Changes saved successfully.`,
       icon: 'success',
       confirmButtonColor: '#1f2937',
       width: '380px',
       padding: '20px',
-      timer: 2000,
+      timer: 1000,
       showConfirmButton: false
     })
   }, [formData, patterns, nodes, edges, rfInstance])
+
+  // 이미지로 내보내기 기능
+  const handleExportImage = useCallback(async () => {
+    if (!rfInstance) {
+      Swal.fire({
+        title: 'Error',
+        text: 'Canvas is not ready',
+        icon: 'error',
+        confirmButtonColor: '#1f2937',
+        width: '380px',
+        padding: '20px'
+      })
+      return
+    }
+
+    setIsExportingImage(true)
+    try {
+      // html-to-image를 동적으로 import
+      const { toPng } = await import('html-to-image')
+      
+      // React Flow 컨테이너 선택
+      const reactFlowContainer = document.querySelector('.react-flow')
+      if (!reactFlowContainer) {
+        throw new Error('React Flow container not found')
+      }
+
+      // SVG 요소가 제대로 렌더링되도록 약간의 대기 시간
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // 이미지 생성 - html-to-image는 SVG를 더 잘 지원
+      const dataUrl = await toPng(reactFlowContainer, {
+        backgroundColor: '#f3f4f6',
+        quality: 1.0,
+        pixelRatio: 3, // 고해상도
+        cacheBust: true,
+        filter: (node) => {
+          // Controls와 Background는 제외 (선택사항)
+          if (node.classList?.contains('react-flow__controls')) {
+            return false
+          }
+          if (node.classList?.contains('react-flow__background')) {
+            return false
+          }
+          return true
+        }
+      })
+
+      // 다운로드 링크 생성
+      const link = document.createElement('a')
+      const timestamp = getKoreaTimeStamp()
+      const fileName = `routing-tree-${timestamp}.png`
+      
+      link.href = dataUrl
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      // 성공 메시지 표시
+      Swal.fire({
+        title: 'Export Completed',
+        text: `Image saved as ${fileName}`,
+        icon: 'success',
+        confirmButtonColor: '#1f2937',
+        width: '380px',
+        padding: '20px',
+        timer: 1000,
+        showConfirmButton: false
+      })
+      setIsExportingImage(false)
+    } catch (error) {
+      console.error('Failed to export image:', error)
+      setIsExportingImage(false)
+      Swal.fire({
+        title: 'Export Failed',
+        text: error.message || 'Failed to export canvas as image',
+        icon: 'error',
+        confirmButtonColor: '#1f2937',
+        width: '380px',
+        padding: '20px'
+      })
+    }
+  }, [rfInstance])
 
   // settingsData가 변경될 때 ref 업데이트
   useEffect(() => {
@@ -136,6 +234,7 @@ function EditorContent() {
   useEffect(() => {
     addedPartsRef.current = addedParts
   }, [addedParts])
+
 
   /* --------------------------------------------------------------
    * 연결된 모든 노드 찾기 (그룹 포함)
@@ -486,7 +585,6 @@ function EditorContent() {
    * --------------------------------------------------------------
    */
   const handleNodeSettingsClick = useCallback((nodeId) => {
-    console.log('handleNodeSettingsClick:', nodeId)
     setNodes((currentNodes) => {
       // edge ID인지 확인 (edge ID는 currentEdges에서 찾을 수 있음)
       setEdges((currentEdges) => {
@@ -1432,10 +1530,9 @@ function EditorContent() {
     )
 
     partNodes.forEach(node => {
-      // 연결된 edge 확인
+      // 연결된 edge 확인 (확정된 edge도 포함)
       const hasEdge = currentEdges.some(
-        e => (e.source === node.id || e.target === node.id) &&
-          !e.data?.isConfirmed
+        e => (e.source === node.id || e.target === node.id)
       )
 
       if (hasEdge) return // edge가 있으면 그룹 연결포인트로 처리됨
@@ -1456,8 +1553,15 @@ function EditorContent() {
             }
           })
         } else {
-          // 이미 보이는 connector는 그대로 유지
-          groupConnectorNodes.push(existingConnector)
+          // 이미 보이는 connector는 그대로 유지하되, hidden을 명시적으로 false로 설정
+          groupConnectorNodes.push({
+            ...existingConnector,
+            data: {
+              ...existingConnector.data,
+              hidden: false, // 명시적으로 숨김 해제
+              isConfirmed: true
+            }
+          })
         }
       } else {
         // 새로운 connector 생성 (기존에 없을 때만)
@@ -1472,7 +1576,8 @@ function EditorContent() {
             isConfirmed: true,
             isGroupBox: false,
             nodeId: node.id,
-            level: 1
+            level: 1,
+            hidden: false // 명시적으로 숨김 해제
           },
           zIndex: 1001
         })
@@ -1945,6 +2050,22 @@ function EditorContent() {
           return nds
         }
 
+        // 텍스트 노드의 경우 text 값 검사
+        if (startNode.data?.isTextNode) {
+          if (!startNode.data?.text || startNode.data.text.trim() === '') {
+            confirmingRef.current.delete(id)
+            setTimeout(() => {
+              showSmallAlert({ icon: 'warning', title: 'Required', text: 'Please enter text in the text node' })
+              const textInput = document.querySelector(`.node-text-input[data-node-id="${id}"], .custom-node-wrapper[data-text-node="true"] .node-text-input`)
+              if (textInput) {
+                textInput.focus()
+                textInput.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }
+            }, 0)
+            return nds
+          }
+        }
+
         // 단일 노드만 확정 처리
         const updatedNodes = nds.map(node => {
             if (node.id === id) {
@@ -2042,6 +2163,101 @@ function EditorContent() {
     }, 100)
   }, [rfInstance, setNodes, setEdges, handleNodeEdit, updateEdgeLabels, findAllConnectedPartNodes, findAllConnectedNodesWithGroups, handleEdgeDelete, handleNodeSettingsClick, showSmallAlert, setShowSettingsPanel, setFocusField, settingsDataRef, selectedNodeId, setAddedParts])
 
+  // localStorage에서 캔버스 상태 복원 (rfInstance가 설정된 후, 한 번만 실행)
+  // 모든 핸들러 함수가 정의된 후에 실행되도록 여기에 배치
+  useEffect(() => {
+    if (!rfInstance || isRestoredRef.current) return
+    
+    try {
+      const savedState = localStorage.getItem('routing-tree-canvas-state')
+      if (savedState) {
+        isRestoredRef.current = true
+        const parsedState = JSON.parse(savedState)
+        
+        // nodes와 edges 복원 (저장된 좌표 그대로 사용)
+        if (parsedState.nodes && Array.isArray(parsedState.nodes) && parsedState.nodes.length > 0) {
+          // nodes의 핸들러 다시 연결 (partNode와 groupConnector 모두)
+          const restoredNodes = parsedState.nodes.map(node => {
+            if (node.type === 'partNode') {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  // 핸들러 다시 연결
+                  onSettingsClick: () => handleNodeSettingsClick(node.id),
+                  onDelete: () => handleNodeDelete(node.id),
+                  onStepChange: (id, val) => handleNodeStepChange(id, val),
+                  onConfirm: () => handleNodeConfirm(node.id),
+                  onEdit: () => handleNodeEdit(node.id),
+                  onTextChange: (id, val) => {
+                    setNodes(currentNodes => currentNodes.map(n => {
+                      if (n.id === id) {
+                        return {
+                          ...n,
+                          data: {
+                            ...n.data,
+                            text: val,
+                            label: val
+                          }
+                        }
+                      }
+                      return n
+                    }))
+                  }
+                }
+              }
+            } else if (node.type === 'groupConnector') {
+              // groupConnector도 저장된 위치 그대로 복원 (핸들러만 다시 연결)
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  // 핸들러 다시 연결
+                  onSettingsClick: () => handleNodeSettingsClick(node.id)
+                }
+              }
+            }
+            return node
+          })
+          setNodes(restoredNodes)
+        }
+        
+        if (parsedState.edges && Array.isArray(parsedState.edges) && parsedState.edges.length > 0) {
+          // edges의 핸들러 다시 연결
+          const restoredEdges = parsedState.edges.map(edge => ({
+            ...edge,
+            data: {
+              ...edge.data,
+              // 핸들러 다시 연결
+              onEdit: (edgeId) => handleNodeEdit(edgeId),
+              onConfirm: (edgeId) => handleNodeConfirm(edgeId),
+              onStepChange: (edgeId, value) => {
+                setEdges((eds) =>
+                  eds.map(e =>
+                    e.id === edgeId
+                      ? { ...e, data: { ...e.data, stepValue: value } }
+                      : e
+                  )
+                )
+              },
+              onSettingsClick: (edgeId) => handleNodeSettingsClick(edgeId)
+            }
+          }))
+          setEdges(restoredEdges)
+        }
+        
+        // viewport 복원
+        if (parsedState.viewport) {
+          setTimeout(() => {
+            rfInstance.setViewport(parsedState.viewport)
+          }, 100)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to restore from localStorage:', error)
+    }
+  }, [rfInstance, handleNodeEdit, handleNodeConfirm, handleNodeSettingsClick, handleNodeDelete, handleNodeStepChange, setNodes, setEdges])
+
   /* --------------------------------------------------------------
    * 파츠 드롭 (노드 생성)
    * --------------------------------------------------------------
@@ -2091,8 +2307,21 @@ function EditorContent() {
           onConfirm: () => handleNodeConfirm(newNodeId),
             onEdit: () => handleNodeEdit(newNodeId),
           // 텍스트 변경 등 추가 핸들러 필요 시 연결
+          // 텍스트 입력 시 패턴코드(label)도 자동으로 업데이트
           onTextChange: (id, val) => {
-              setNodes(currentNodes => currentNodes.map(n => n.id === id ? { ...n, data: { ...n.data, text: val } } : n))
+              setNodes(currentNodes => currentNodes.map(n => {
+                if (n.id === id) {
+                  return {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      text: val,
+                      label: val // 패턴코드도 자동으로 업데이트
+                    }
+                  }
+                }
+                return n
+              }))
           }
         },
       }
@@ -2131,6 +2360,61 @@ function EditorContent() {
    */
   const onConnect = useCallback((connection) => {
     if (!connection.source || !connection.target) return
+
+    // source node를 기준으로 target node를 수직 정렬
+    setNodes((nds) => {
+      const sourceNode = nds.find(n => n.id === connection.source)
+      const targetNode = nds.find(n => n.id === connection.target)
+
+      if (!sourceNode || !targetNode) return nds
+
+      // source node의 y 좌표 가져오기
+      let sourceY = sourceNode.position.y
+
+      // source가 groupConnector인 경우, 그룹박스(edge-label-box)의 y 좌표 사용
+      if (sourceNode.type === 'groupConnector') {
+        if (sourceNode.data?.groupEdges && sourceNode.data.groupEdges.length > 0 && rfInstance) {
+          // 그룹의 첫 번째 edge ID로 edge-label-box 찾기
+          const firstEdgeId = sourceNode.data.groupEdges[0]
+          const labelBox = document.querySelector(`.edge-label-box[data-edge-id="${firstEdgeId}"]`)
+          
+          if (labelBox) {
+            // edge-label-box의 DOM 위치를 flow 좌표로 변환
+            const rect = labelBox.getBoundingClientRect()
+            const flowPosition = rfInstance.screenToFlowPosition({
+              x: rect.left + rect.width / 2,
+              y: rect.top + rect.height / 2
+            })
+            sourceY = flowPosition.y
+          } else {
+            // DOM에서 찾지 못한 경우 groupConnector의 position 사용
+            sourceY = sourceNode.position.y
+          }
+        } else if (sourceNode.data?.nodeId) {
+          // 단일 노드 커넥터인 경우
+          const singleNode = nds.find(n => n.id === sourceNode.data.nodeId)
+          if (singleNode) {
+            sourceY = singleNode.position.y
+          }
+        }
+      }
+
+      // target node의 y 좌표를 source node의 y 좌표로 업데이트
+      const updatedNodes = nds.map(node => {
+        if (node.id === connection.target) {
+          return {
+            ...node,
+            position: {
+              ...node.position,
+              y: sourceY // source node의 y 좌표로 정렬
+            }
+          }
+        }
+        return node
+      })
+
+      return updatedNodes
+    })
 
     const newEdge = {
       id: `edge-${connection.source}-${connection.target}-${Date.now()}`,
@@ -2191,8 +2475,6 @@ function EditorContent() {
             startNodeId = connection.target
           } 
 
-          console.log('startNodeId:', startNodeId)
-
           // 설정 패널이 열려있고 선택된 노드가 연결된 그룹에 포함되어 있으면 addedParts 업데이트
           if (startNodeId && showSettingsPanel && selectedNodeId) {
             // startNodeId가 groupId인지 확인 (확정되지 않은 groupConnector의 groupId만)
@@ -2231,8 +2513,6 @@ function EditorContent() {
                 )
               }
             }
-            
-            console.log('groupConnector:', groupConnector)
             
             if (groupConnector) {
               // 편집 모드로 전환된 그룹인지 확인 (확정되지 않은 그룹이고 savedSettings가 있고 addedPartsIds가 있는 경우)
@@ -2593,16 +2873,28 @@ function EditorContent() {
       />
 
       <EditorHeader />
-      <EditorMetaBar 
-        formData={formData} 
-        onReset={() => {
+        <EditorMetaBar 
+          formData={formData} 
+          onReset={() => {
         setNodes([])
         setEdges([])
         setAddedParts([])
         setShowSettingsPanel(false)
-        }}
-        onSave={handleSave}
-      />
+            setSelectedNodeId(null)
+            setIsEdgeConfirmed(false)
+            // localStorage에서 캔버스 상태 제거
+            try {
+              localStorage.removeItem('routing-tree-canvas-state')
+            } catch (error) {
+              console.error('Failed to remove canvas state from localStorage:', error)
+            }
+            // 복원 플래그 리셋
+            isRestoredRef.current = false
+          }}
+          onSave={handleSave}
+          onExportImage={handleExportImage}
+          isExportingImage={isExportingImage}
+        />
 
       <div className="editor-main">
         <div className="canvas-area">
@@ -2622,7 +2914,7 @@ function EditorContent() {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-            minZoom={0.5}
+            minZoom={0.1}
             maxZoom={2}
             attributionPosition="bottom-left"
             connectionLineStyle={{ stroke: '#2563eb', strokeWidth: 2 }}

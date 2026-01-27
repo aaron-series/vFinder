@@ -34,7 +34,7 @@ const PartsListModal = ({ isOpen, onClose, patterns, reorderPatterns, removePatt
         confirmButtonColor: '#1f2937',
         width: '380px',
         padding: '20px',
-        timer: 1500,
+        timer: 1000,
         showConfirmButton: false,
         customClass: {
           container: 'swal2-container-high-z'

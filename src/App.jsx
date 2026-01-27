@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import useRoutingStore from './store/useRoutingStore'
+import { CATEGORY_MAP, GENDER_MAP } from './constants'
 import logo from './assets/logo.png'
 import nikeLogo from './assets/nike_logo.png'
 import './App.css'
 
 function App() {
   const navigate = useNavigate()
-  
+
   // Zustand store 사용
   const {
     selectedFile,
@@ -46,10 +47,26 @@ function App() {
   // 드래그 앤 드롭 상태
   const [draggedIndex, setDraggedIndex] = useState(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
-  
+
   // 로딩 상태
   const [isLoading, setIsLoading] = useState(false)
   const [loadingProgress, setLoadingProgress] = useState(0)
+
+  // 테이블 섹션 접기/펼치기 상태
+  const [isTableSectionExpanded, setIsTableSectionExpanded] = useState(false)
+  const [wasExpanded, setWasExpanded] = useState(true)
+
+  const handleTableSectionToggle = () => {
+    if (isTableSectionExpanded) {
+      setWasExpanded(true)
+    }
+    setIsTableSectionExpanded(!isTableSectionExpanded)
+    if (!isTableSectionExpanded) {
+      setTimeout(() => {
+        setWasExpanded(false)
+      }, 500)
+    }
+  }
 
   // 패턴 테이블 드래그 앤 드롭 핸들러
   const handlePatternDragStart = (e, index) => {
@@ -100,17 +117,17 @@ function App() {
         fileName: file.name,
         model: 'HO24 AIR MAX MUSE PROD 1209'
       })
-      
+
       // 로딩 시작
       setIsLoading(true)
       setLoadingProgress(0)
-      
+
       // 2~4초 사이 랜덤 지연
       const delay = Math.random() * 2000 + 2000 // 2000ms ~ 4000ms
       const interval = 50 // 업데이트 간격 (ms)
       const steps = delay / interval // 총 스텝 수
       const increment = 100 / steps // 각 스텝당 증가량
-      
+
       let currentProgress = 0
       const progressInterval = setInterval(() => {
         currentProgress += increment
@@ -121,14 +138,14 @@ function App() {
           setLoadingProgress(currentProgress)
         }
       }, interval)
-      
+
       setTimeout(() => {
         clearInterval(progressInterval)
         setLoadingProgress(100)
         setIsLoading(false)
         setShowModal(true)
       }, delay)
-      
+
       // input 값 초기화하여 같은 파일을 다시 선택할 수 있도록 함
       e.target.value = ''
     }
@@ -148,17 +165,17 @@ function App() {
         fileName: file.name,
         model: 'HO24 AIR MAX MUSE PROD 1209'
       })
-      
+
       // 로딩 시작
       setIsLoading(true)
       setLoadingProgress(0)
-      
+
       // 2~4초 사이 랜덤 지연
       const delay = Math.random() * 2000 + 2000 // 2000ms ~ 4000ms
       const interval = 50 // 업데이트 간격 (ms)
       const steps = delay / interval // 총 스텝 수
       const increment = 100 / steps // 각 스텝당 증가량
-      
+
       let currentProgress = 0
       const progressInterval = setInterval(() => {
         currentProgress += increment
@@ -169,7 +186,7 @@ function App() {
           setLoadingProgress(currentProgress)
         }
       }, interval)
-      
+
       setTimeout(() => {
         clearInterval(progressInterval)
         setLoadingProgress(100)
@@ -189,10 +206,10 @@ function App() {
 
   const handlePatternRemove = async (e, patternId) => {
     e.stopPropagation()
-    
+
     const pattern = patterns.find(p => p.id === patternId)
     const patternCode = pattern?.code || 'This pattern'
-    
+
     const result = await Swal.fire({
       title: 'Remove Parts',
       html: `<u>${patternCode}</u> will be removed.<br/>Are you sure you want to remove it?`,
@@ -208,7 +225,7 @@ function App() {
         container: 'swal2-container-high-z'
       }
     })
-    
+
     if (result.isConfirmed) {
       removePattern(patternId)
       Swal.fire({
@@ -218,7 +235,7 @@ function App() {
         confirmButtonColor: '#1f2937',
         width: '380px',
         padding: '20px',
-        timer: 1500,
+        timer: 1000,
         showConfirmButton: false,
         customClass: {
           container: 'swal2-container-high-z'
@@ -228,7 +245,15 @@ function App() {
   }
 
   const handleGeneration = () => {
-    console.log('Generation started', formData, patterns)
+    // formData를 store에 저장 (새로고침 후에도 유지되도록)
+    setFormData({
+      fileName: formData.fileName || '',
+      model: formData.model || '',
+      devStyle: formData.devStyle || '',
+      category: formData.category || '',
+      gender: formData.gender || '',
+      size: formData.size || ''
+    })
     // 에디터 페이지로 이동 (zustand로 상태 공유)
     navigate('/editor')
   }
@@ -326,9 +351,9 @@ function App() {
                     {/* 업로드한 파일 */}
                     <div className="form-group full-width">
                       <label className="form-label">Uploaded File</label>
-                      <input 
-                        type="text" 
-                        className="form-input" 
+                      <input
+                        type="text"
+                        className="form-input"
                         value={formData.fileName}
                         readOnly
                       />
@@ -338,18 +363,18 @@ function App() {
                     <div className="form-row">
                       <div className="form-group">
                         <label className="form-label">Model</label>
-                        <input 
-                          type="text" 
-                          className="form-input" 
+                        <input
+                          type="text"
+                          className="form-input"
                           value={formData.model}
                           onChange={(e) => handleInputChange('model', e.target.value)}
                         />
                       </div>
                       <div className="form-group">
                         <label className="form-label">Dev. Style</label>
-                        <input 
-                          type="text" 
-                          className="form-input" 
+                        <input
+                          type="text"
+                          className="form-input"
                           placeholder="Enter Dev. Style"
                           value={formData.devStyle}
                           onChange={(e) => handleInputChange('devStyle', e.target.value)}
@@ -361,53 +386,32 @@ function App() {
                     <div className="form-row">
                       <div className="form-group">
                         <label className="form-label">Category</label>
-                        <select 
+                        <select
                           className="form-select"
                           value={formData.category}
                           onChange={(e) => handleInputChange('category', e.target.value)}
                         >
                           <option value="">Select Category</option>
-                          <option value="A">Men's Court</option>
-                          <option value="B">Women's Court</option>
-                          <option value="C">Causal</option>
-                          <option value="D">Men's Running</option>
-                          <option value="E">Women's Running</option>
-                          <option value="F">Men's Fitness</option>
-                          <option value="G">Cleated</option>
-                          <option value="H">Outdoor</option>
-                          <option value="L">Military Special Forces</option>
-                          <option value="MR">Men’s Performance/Running</option>
-                          <option value="MT">Men’s Training</option>
-                          <option value="N">Men’s Specialty</option>
-                          <option value="P">Women’s Specialty</option>
-                          <option value="R">Men’s Track & Field</option>
-                          <option value="S">Sandals</option>
-                          <option value="WT">Women’s Training</option>
-                          <option value="YA">Young Athletes</option>
-                          <option value="NSW">Nike Sports Wear</option>
-                          <option value="NST">Nike Sports Training</option>
-                          <option value="AS">Action Sports</option>
-                          <option value="BB">Basketball</option>
-                          <option value="JM">Jordan Men’s</option>
-                          <option value="GF">Global Soccer</option>
-                          <option value="GFK">Global Soccer Kids</option>
-                          <option value="IF">Infants</option>
-                          <option value="NA">Native American</option>
-
+                          {Object.entries(CATEGORY_MAP).map(([key, value]) => (
+                            <option key={key} value={key}>
+                              {value}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="form-group">
-                        <label className="form-label">Size</label>
-                        <select 
+                        <label className="form-label">Gender</label>
+                        <select
                           className="form-select"
-                          value={formData.size}
-                          onChange={(e) => handleInputChange('size', e.target.value)}
+                          value={formData.gender}
+                          onChange={(e) => handleInputChange('gender', e.target.value)}
                         >
-                          <option value="">Select Size</option>
-                          <option value="S">S</option>
-                          <option value="M">M</option>
-                          <option value="L">L</option>
-                          <option value="XL">XL</option>
+                          <option value="">Select Gender</option>
+                          {Object.entries(GENDER_MAP).map(([key, value]) => (
+                            <option key={key} value={key}>
+                              {value}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -425,81 +429,81 @@ function App() {
                 {isPatternPartsExpanded && (
                   <div className="section-content">
                     <div className="pattern-table">
-                  <div className="pattern-table-header">
-                    <div className="pattern-col pattern-col-drag"></div>
-                    <div className="pattern-col pattern-col-no">no.</div>
-                    <div className="pattern-col pattern-col-thumbnail"></div>
-                    <div className="pattern-col pattern-col-code">Pattern Code</div>
-                    <div className="pattern-col pattern-col-layer">Original Layer Name</div>
-                    <div className="pattern-col pattern-col-menu"></div>
-                  </div>
-
-                  <div className="pattern-table-body">
-                    {patterns.map((pattern, index) => (
-                      <div 
-                        key={pattern.id} 
-                        className={`pattern-row ${dragOverIndex === index ? 'drag-over' : ''} ${draggedIndex === index ? 'dragging' : ''}`}
-                        draggable
-                        onDragStart={(e) => handlePatternDragStart(e, index)}
-                        onDragEnd={handlePatternDragEnd}
-                        onDragOver={(e) => handlePatternDragOver(e, index)}
-                        onDragLeave={handlePatternDragLeave}
-                        onDrop={(e) => handlePatternDrop(e, index)}
-                      >
-                        <div className="pattern-col pattern-col-drag">
-                          <span className="drag-handle" draggable={false}>☰</span>
-                        </div>
-                        <div className="pattern-col pattern-col-no">{pattern.no}</div>
-                        <div className="pattern-col pattern-col-thumbnail">
-                          <div className="pattern-thumbnail">
-                            {pattern.thumbnail ? (
-                              <img src={pattern.thumbnail} alt={pattern.code} className="pattern-thumbnail-image" />
-                            ) : (
-                              <svg width="100%" height="100%" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M30 60 L60 30 L90 60 L60 90 Z" stroke="#999" strokeWidth="2" fill="none"/>
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                        <div className="pattern-col pattern-col-code">
-                          <input 
-                            type="text" 
-                            className="pattern-input" 
-                            value={pattern.code}
-                            onChange={(e) => {
-                              const newPatterns = patterns.map(p => 
-                                p.id === pattern.id ? { ...p, code: e.target.value } : p
-                              )
-                              setPatterns(newPatterns)
-                            }}
-                          />
-                        </div>
-                        <div className="pattern-col pattern-col-layer">
-                          <span className="layer-name">{pattern.layerName}</span>
-                        </div>
-                        <div className="pattern-col pattern-col-menu">
-                          <button 
-                            className="pattern-menu-btn"
-                            onClick={(e) => handlePatternRemove(e, pattern.id)}
-                            title="제거"
-                          >
-                            ×
-                          </button>
-                        </div>
+                      <div className="pattern-table-header">
+                        <div className="pattern-col pattern-col-drag"></div>
+                        <div className="pattern-col pattern-col-no">no.</div>
+                        <div className="pattern-col pattern-col-thumbnail"></div>
+                        <div className="pattern-col pattern-col-code">Pattern Code</div>
+                        <div className="pattern-col pattern-col-layer">Original Layer Name</div>
+                        <div className="pattern-col pattern-col-menu"></div>
                       </div>
-                    ))}
-                  </div>
+
+                      <div className="pattern-table-body">
+                        {patterns.map((pattern, index) => (
+                          <div
+                            key={pattern.id}
+                            className={`pattern-row ${dragOverIndex === index ? 'drag-over' : ''} ${draggedIndex === index ? 'dragging' : ''}`}
+                            draggable
+                            onDragStart={(e) => handlePatternDragStart(e, index)}
+                            onDragEnd={handlePatternDragEnd}
+                            onDragOver={(e) => handlePatternDragOver(e, index)}
+                            onDragLeave={handlePatternDragLeave}
+                            onDrop={(e) => handlePatternDrop(e, index)}
+                          >
+                            <div className="pattern-col pattern-col-drag">
+                              <span className="drag-handle" draggable={false}>☰</span>
+                            </div>
+                            <div className="pattern-col pattern-col-no">{pattern.no}</div>
+                            <div className="pattern-col pattern-col-thumbnail">
+                              <div className="pattern-thumbnail">
+                                {pattern.thumbnail ? (
+                                  <img src={pattern.thumbnail} alt={pattern.code} className="pattern-thumbnail-image" />
+                                ) : (
+                                  <svg width="100%" height="100%" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M30 60 L60 30 L90 60 L60 90 Z" stroke="#999" strokeWidth="2" fill="none" />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                            <div className="pattern-col pattern-col-code">
+                              <input
+                                type="text"
+                                className="pattern-input"
+                                value={pattern.code}
+                                onChange={(e) => {
+                                  const newPatterns = patterns.map(p =>
+                                    p.id === pattern.id ? { ...p, code: e.target.value } : p
+                                  )
+                                  setPatterns(newPatterns)
+                                }}
+                              />
+                            </div>
+                            <div className="pattern-col pattern-col-layer">
+                              <span className="layer-name">{pattern.layerName}</span>
+                            </div>
+                            <div className="pattern-col pattern-col-menu">
+                              <button
+                                className="pattern-menu-btn"
+                                onClick={(e) => handlePatternRemove(e, pattern.id)}
+                                title="제거"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
-      </div>
+            </div>
 
             {/* Modal Footer */}
             <div className="modal-footer">
               <button className="btn-generation" onClick={handleGeneration}>
                 Generation
-        </button>
+              </button>
             </div>
           </div>
         </div>
@@ -509,23 +513,27 @@ function App() {
       <main className="main-content">
         {/* Upload Section */}
         <section className="upload-section">
-          <h2 className="upload-title">Upload your file and start creating the routing tree.</h2>
+          <h2 className="upload-title">Start creating the routing tree.</h2>
           <p className="upload-subtitle">Upload your pattern file.*.dxf extension only supported</p>
-          
-          <div 
+
+          <div
             className="upload-box"
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onClick={() => document.getElementById('fileInput').click()}
           >
+            <svg className="animated-border">
+              <rect x="2" y="2" rx="20" ry="20" />
+            </svg>
+
             <svg className="upload-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M11 16V7.85L8.4 10.45L7 9L12 4L17 9L15.6 10.45L13 7.85V16H11ZM6 20C5.45 20 4.979 19.804 4.587 19.412C4.195 19.02 3.99934 18.5493 4 18V15H6V18H18V15H20V18C20 18.55 19.804 19.021 19.412 19.413C19.02 19.805 18.5493 20.0007 18 20H6Z" fill="#4A90E2"/>
+              <path d="M11 16V7.85L8.4 10.45L7 9L12 4L17 9L15.6 10.45L13 7.85V16H11ZM6 20C5.45 20 4.979 19.804 4.587 19.412C4.195 19.02 3.99934 18.5493 4 18V15H6V18H18V15H20V18C20 18.55 19.804 19.021 19.412 19.413C19.02 19.805 18.5493 20.0007 18 20H6Z" fill="#4A90E2" />
             </svg>
             <p className="upload-text">Drag and drop your file or click to attach</p>
           </div>
-          <input 
-            type="file" 
-            id="fileInput" 
+          <input
+            type="file"
+            id="fileInput"
             accept=".dxf"
             onChange={handleFileUpload}
             style={{ display: 'none' }}
@@ -533,7 +541,16 @@ function App() {
         </section>
 
         {/* Table Section */}
-        <section className="table-section">
+        <section className={`table-section ${isTableSectionExpanded ? 'expanded' : 'collapsed'} ${wasExpanded && !isTableSectionExpanded ? 'collapsing' : !wasExpanded && isTableSectionExpanded ? 'expanding' : ''}`}>
+          <button
+            className="table-toggle-btn"
+            onClick={handleTableSectionToggle}
+            aria-label={isTableSectionExpanded ? 'Collapse table' : 'Expand table'}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
           <div className="table-header">
             <h2 className="table-title">Routing Tree List</h2>
             <div className="table-filters">
@@ -583,7 +600,7 @@ function App() {
           </div>
         </section>
       </main>
-      </div>
+    </div>
   )
 }
 

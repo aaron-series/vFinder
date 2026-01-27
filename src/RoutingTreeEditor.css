@@ -37,7 +37,7 @@
 }
 
 .title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
   background: linear-gradient(
     90deg,
@@ -69,7 +69,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 24px;
+  padding: 8px 24px;
   background-color: #f8f9fa;
   border-bottom: 1px solid #e0e0e0;
   min-height: 36px;
@@ -94,15 +94,15 @@
 }
 
 .info-label {
-  font-size: 13px;
-  color: #666;
-  font-weight: 500;
+  font-size: 12px;
+  color: #999;
+  font-weight: 400;
 }
 
 .info-value {
-  font-size: 14px;
+  font-size: 12px;
   color: #333;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .editor-header-right {
@@ -151,6 +151,7 @@
 
 .btn-reset,
 .btn-export,
+.btn-export-image,
 .btn-save {
   display: flex;
   align-items: center;
@@ -185,6 +186,57 @@
 
 .btn-export:hover {
   background-color: #eff6ff;
+}
+
+.btn-export.exporting {
+  opacity: 0.8;
+  cursor: wait;
+  pointer-events: none;
+  position: relative;
+}
+
+.btn-export.exporting::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, rgba(37, 123, 235, 0.1), transparent);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.btn-export.exporting .loading-spinner {
+  animation: spin 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+  filter: drop-shadow(0 0 2px rgba(37, 123, 235, 0.3));
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.btn-export-image {
+  background-color: white;
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.btn-export-image:hover {
+  background-color: #ecfdf5;
+  border-color: #059669;
+  color: #059669;
 }
 
 .btn-save {
@@ -238,10 +290,10 @@
 /* Settings Process Panel */
 .settings-process-panel {
   position: fixed;
-  top: 101px; /* Header + Meta Bar height */
+  top: 110px; /* Header + Meta Bar height */
   right: -440px;
   width: 440px;
-  height: calc(100vh - 80px - 280px); /* 전체 높이 - Header/Meta - Parts Panel */
+  height: calc(100vh - 89px - 280px); /* 전체 높이 - Header/Meta - Parts Panel */
   background-color: white;
   /* border-left: 3px solid #9333ea; */
   box-shadow: -7px 0px 12px rgba(116, 116, 116, 0.1);
@@ -655,9 +707,9 @@
   width: 300px;
 }
 
-.custom-node-wrapper[data-text-node="true"] .custom-node {
+/* .custom-node-wrapper[data-text-node="true"] .custom-node {
   width: 450px;
-}
+} */
 
 .custom-node:hover {
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
@@ -763,12 +815,18 @@
   outline: none;
   background: white;
   color: #333;
-  line-height: 6.5; /*1.8*/
+  line-height: 1.8; /*6.5*/
   display: block;
   box-sizing: border-box;
   /* 수직 중앙 정렬을 위한 padding 조정 */
   padding-top: 20px;
   padding-bottom: 20px;
+  cursor: text; /* 편집 모드일 때 입력 커서 */
+}
+
+/* 확정 모드일 때 커서를 default로 변경 */
+.custom-node-wrapper[data-confirmed="true"] .node-text-input {
+  cursor: default;
 }
 
 .node-text-input:focus {
@@ -1331,7 +1389,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+  /* background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8) 0%, transparent 70%); */
   pointer-events: none;
 }
 

@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0', // 외부 접근 허용
-    port: 5173, // 기본 포트
+    port: 80, // 기본 포트
   },
 })
