@@ -55,3 +55,8 @@ export const getKoreaTimeISOString = () => {
 export const getKoreaTimeStamp = () => {
   return getKoreaTimeISOString().replace(/[:.]/g, '-').slice(0, -5)
 }
+
+export const asdf = (str) => {
+  console.log(str)
+  return str
+}
