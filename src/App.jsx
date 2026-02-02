@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import useRoutingStore from './store/useRoutingStore'
@@ -38,7 +38,7 @@ function App() {
         model: 'HO24 AIR MAX MUSE PROD 1209',
         devStyle: '',
         category: '',
-        size: ''
+        gender: ''
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,6 +55,11 @@ function App() {
   // 테이블 섹션 접기/펼치기 상태
   const [isTableSectionExpanded, setIsTableSectionExpanded] = useState(false)
   const [wasExpanded, setWasExpanded] = useState(true)
+
+  // 입력 필드 ref
+  const devStyleInputRef = useRef(null)
+  const categorySelectRef = useRef(null)
+  const genderSelectRef = useRef(null)
 
   const handleTableSectionToggle = () => {
     if (isTableSectionExpanded) {
@@ -245,6 +250,130 @@ function App() {
   }
 
   const handleGeneration = () => {
+    // 유효성 검사: Dev. Style, Category, Gender 필수 항목 확인
+    if (!formData.devStyle || formData.devStyle.trim() === '') {
+      Swal.fire({
+        title: 'Required',
+        text: 'Please enter Dev. Style',
+        icon: 'warning',
+        confirmButtonColor: '#1f2937',
+        width: '380px',
+        padding: '20px',
+        customClass: {
+          container: 'swal2-container-high-z'
+        }
+      }).then(() => {
+        // Basic Information 섹션이 접혀있으면 펼치기
+        if (!isBasicInfoExpanded) {
+          setIsBasicInfoExpanded(true)
+          setTimeout(() => {
+            devStyleInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            setTimeout(() => {
+              devStyleInputRef.current?.focus()
+              // 포커스 유지를 위해 추가 시도
+              setTimeout(() => {
+                devStyleInputRef.current?.focus()
+              }, 50)
+            }, 100)
+          }, 300)
+        } else {
+          setTimeout(() => {
+            devStyleInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            setTimeout(() => {
+              devStyleInputRef.current?.focus()
+              // 포커스 유지를 위해 추가 시도
+              setTimeout(() => {
+                devStyleInputRef.current?.focus()
+              }, 50)
+            }, 100)
+          }, 100)
+        }
+      })
+      return
+    }
+
+    if (!formData.category || formData.category.trim() === '') {
+      Swal.fire({
+        title: 'Required',
+        text: 'Please select Category',
+        icon: 'warning',
+        confirmButtonColor: '#1f2937',
+        width: '380px',
+        padding: '20px',
+        customClass: {
+          container: 'swal2-container-high-z'
+        }
+      }).then(() => {
+        // Basic Information 섹션이 접혀있으면 펼치기
+        if (!isBasicInfoExpanded) {
+          setIsBasicInfoExpanded(true)
+          setTimeout(() => {
+            categorySelectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            setTimeout(() => {
+              categorySelectRef.current?.focus()
+              // 포커스 유지를 위해 추가 시도
+              setTimeout(() => {
+                categorySelectRef.current?.focus()
+              }, 50)
+            }, 100)
+          }, 300)
+        } else {
+          setTimeout(() => {
+            categorySelectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            setTimeout(() => {
+              categorySelectRef.current?.focus()
+              // 포커스 유지를 위해 추가 시도
+              setTimeout(() => {
+                categorySelectRef.current?.focus()
+              }, 50)
+            }, 100)
+          }, 100)
+        }
+      })
+      return
+    }
+
+    if (!formData.gender || formData.gender.trim() === '') {
+      Swal.fire({
+        title: 'Required',
+        text: 'Please select Gender',
+        icon: 'warning',
+        confirmButtonColor: '#1f2937',
+        width: '380px',
+        padding: '20px',
+        customClass: {
+          container: 'swal2-container-high-z'
+        }
+      }).then(() => {
+        // Basic Information 섹션이 접혀있으면 펼치기
+        if (!isBasicInfoExpanded) {
+          setIsBasicInfoExpanded(true)
+          setTimeout(() => {
+            genderSelectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            setTimeout(() => {
+              genderSelectRef.current?.focus()
+              // 포커스 유지를 위해 추가 시도
+              setTimeout(() => {
+                genderSelectRef.current?.focus()
+              }, 50)
+            }, 100)
+          }, 300)
+        } else {
+          setTimeout(() => {
+            genderSelectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            setTimeout(() => {
+              genderSelectRef.current?.focus()
+              // 포커스 유지를 위해 추가 시도
+              setTimeout(() => {
+                genderSelectRef.current?.focus()
+              }, 50)
+            }, 100)
+          }, 100)
+        }
+      })
+      return
+    }
+
     // formData를 store에 저장 (새로고침 후에도 유지되도록)
     setFormData({
       fileName: formData.fileName || '',
@@ -252,7 +381,6 @@ function App() {
       devStyle: formData.devStyle || '',
       category: formData.category || '',
       gender: formData.gender || '',
-      size: formData.size || ''
     })
     // 에디터 페이지로 이동 (zustand로 상태 공유)
     navigate('/editor')
@@ -266,7 +394,7 @@ function App() {
       model: 'Nike Air Max 90',
       devStyle: 'DH2973',
       category: 'DH2973',
-      size: 'M',
+      gender: 'M',
       patterns: '25',
       lastUpdate: '2026.01.07 11:30 40:12'
     },
@@ -276,7 +404,7 @@ function App() {
       model: 'Nike Air Max 90',
       devStyle: 'DH2973',
       category: 'DH2973',
-      size: 'M',
+      gender: 'M',
       patterns: '25',
       lastUpdate: '2026.01.07 11:30 40:12'
     },
@@ -286,7 +414,7 @@ function App() {
       model: 'Nike Air Max 90',
       devStyle: 'DH2973',
       category: 'DH2973',
-      size: 'M',
+      gender: 'M',
       patterns: '25',
       lastUpdate: '2026.01.07 11:30 40:12'
     },
@@ -296,7 +424,7 @@ function App() {
       model: 'Nike Air Max 90',
       devStyle: 'DH2973',
       category: 'DH2973',
-      size: 'M',
+      gender: 'M',
       patterns: '25',
       lastUpdate: '2026.01.07 11:30 40:12'
     }
@@ -362,7 +490,7 @@ function App() {
                     {/* Model & Dev. Style */}
                     <div className="form-row">
                       <div className="form-group">
-                        <label className="form-label">Model</label>
+                        <label className="form-label">Model*</label>
                         <input
                           type="text"
                           className="form-input"
@@ -371,8 +499,9 @@ function App() {
                         />
                       </div>
                       <div className="form-group">
-                        <label className="form-label">Dev. Style</label>
+                        <label className="form-label">Dev. Style*</label>
                         <input
+                          ref={devStyleInputRef}
                           type="text"
                           className="form-input"
                           placeholder="Enter Dev. Style"
@@ -382,11 +511,12 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Category & Size */}
+                    {/* Category & Gender */}
                     <div className="form-row">
                       <div className="form-group">
-                        <label className="form-label">Category</label>
+                        <label className="form-label">Category*</label>
                         <select
+                          ref={categorySelectRef}
                           className="form-select"
                           value={formData.category}
                           onChange={(e) => handleInputChange('category', e.target.value)}
@@ -400,8 +530,9 @@ function App() {
                         </select>
                       </div>
                       <div className="form-group">
-                        <label className="form-label">Gender</label>
+                        <label className="form-label">Gender*</label>
                         <select
+                          ref={genderSelectRef}
                           className="form-select"
                           value={formData.gender}
                           onChange={(e) => handleInputChange('gender', e.target.value)}
@@ -513,8 +644,18 @@ function App() {
       <main className="main-content">
         {/* Upload Section */}
         <section className="upload-section">
-          <h2 className="upload-title">Start creating the routing tree.</h2>
-          <p className="upload-subtitle">Upload your pattern file.*.dxf extension only supported</p>
+          <h2 className="upload-title">
+            {'ROUTING TREE GENERATION'.split('').map((char, index) => (
+              <span 
+                key={index} 
+                className="char" 
+                data-char={char === ' ' ? '\u00A0' : char}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                {char === ' ' ? '\u00A0' : char}
+              </span>
+            ))}
+          </h2>
 
           <div
             className="upload-box"
@@ -538,6 +679,8 @@ function App() {
             onChange={handleFileUpload}
             style={{ display: 'none' }}
           />
+
+          <p className="upload-subtitle">Upload your pattern file.*.dxf extension only supported</p> {/* Upload your pattern file.*.dxf extension only supported */}
         </section>
 
         {/* Table Section */}
@@ -572,7 +715,7 @@ function App() {
                   <th>Model</th>
                   <th>Dev. Style</th>
                   <th>Category</th>
-                  <th>Size</th>
+                  <th>Gender</th>
                   <th>Patterns</th>
                   <th>Last Update</th>
                   <th></th>
@@ -587,7 +730,7 @@ function App() {
                     <td className="model-name">{item.model}</td>
                     <td>{item.devStyle}</td>
                     <td>{item.category}</td>
-                    <td>{item.size}</td>
+                    <td>{item.gender}</td>
                     <td>{item.patterns}</td>
                     <td>{item.lastUpdate}</td>
                     <td>

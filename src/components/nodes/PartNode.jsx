@@ -44,11 +44,11 @@ const PartNode = ({ data, isConnectable, id }) => {
       <div className="node-number">{data.number || '1'}</div>
       
       {/* 제거 버튼 (좌측 상단) - 확정 상태가 아닐 때만 표시 */}
-      {!isConfirmed && (
+      {/* {!isConfirmed && (
         <button className="node-delete-btn" onClick={handleDelete} title="노드 제거">
           ×
         </button>
-      )}
+      )} */}
       
       {/* 노드 제목 영역 (상단 외부) */}
       <div className="node-title-wrapper">
@@ -69,19 +69,20 @@ const PartNode = ({ data, isConnectable, id }) => {
       {/* 메인 노드 */}
       <div className="custom-node">
         {/* 상단 핸들 (입력) */}
-        <Handle
+        {/* <Handle
           type="target"
           position={Position.Top}
           id="top"
           isConnectable={true}
           style={{ 
             background: isConfirmed ? '#10b981' : '#2563eb', 
-            width: 14, 
-            height: 14,
+            width: 18, 
+            height: 18,
+            top: '-50px',
             opacity: isConfirmed ? 1 : 1,
             pointerEvents: 'all'
           }}
-        />
+        /> */}
         
         {/* 좌측 핸들 (입력) */}
         <Handle
@@ -91,8 +92,9 @@ const PartNode = ({ data, isConnectable, id }) => {
           isConnectable={true}
           style={{ 
             background: isConfirmed ? '#10b981' : '#2563eb', 
-            width: 14, 
-            height: 14,
+            width: 18, 
+            height: 18,
+            left: '-10px',
             opacity: isConfirmed ? 1 : 1,
             pointerEvents: 'all'
           }}
@@ -132,15 +134,16 @@ const PartNode = ({ data, isConnectable, id }) => {
           isConnectable={true}
           style={{ 
             background: isConfirmed ? '#10b981' : '#2563eb', 
-            width: 14, 
-            height: 14,
+            width: 18, 
+            height: 18,
+            right: '-10px',
             opacity: isConfirmed ? 1 : 1,
             pointerEvents: 'all'
           }}
         />
         
         {/* 하단 핸들 (출력) */}
-        <Handle
+        {/* <Handle
           type="source"
           position={Position.Bottom}
           id="bottom"
@@ -152,7 +155,7 @@ const PartNode = ({ data, isConnectable, id }) => {
             opacity: isConfirmed ? 1 : 1,
             pointerEvents: 'all'
           }}
-        />
+        /> */}
       </div>
       
       {/* 노드 하단 라벨 박스 - edge가 연결되지 않았을 때만 표시 */}
@@ -196,7 +199,7 @@ const PartNode = ({ data, isConnectable, id }) => {
                     data.onConfirm(id)
                   }
                 }} title="확정">
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="28" height="28" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                   </svg>
                 </button>
@@ -208,7 +211,7 @@ const PartNode = ({ data, isConnectable, id }) => {
                   data.onEdit(id)
                 }
               }} title="편집">
-                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <svg width="28" height="28" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                 </svg>
               </button>

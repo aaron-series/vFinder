@@ -15,7 +15,6 @@ const useRoutingStore = create(
         devStyle: '',
         category: '',
         gender: '',
-        size: ''
       },
       setFormData: (data) => set({ formData: data }),
       updateFormField: (field, value) => set((state) => ({
@@ -97,7 +96,6 @@ const useRoutingStore = create(
           devStyle: '',
           category: '',
           gender: '',
-          size: ''
         },
         patterns: [
           { id: 1, no: '01', code: 'AIR_MAX_MUSE_FV1920-7', layerName: 'AIR_MAX_MUSE_FV1920-7', thumbnail: '/parts/AIR_MAX_MUSE_FV1920-7.png' },

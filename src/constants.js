@@ -1,10 +1,10 @@
 // 노드 크기 상수
-export const NODE_WIDTH = 180
-export const NODE_HEIGHT = 200
+export const NODE_WIDTH = 200
+export const NODE_HEIGHT = 220
 
 // 라벨박스 크기 상수
-export const LABEL_BOX_WIDTH = 280
-export const LABEL_BOX_HALF_WIDTH = LABEL_BOX_WIDTH / 2 // 140px
+export const LABEL_BOX_WIDTH = 340
+export const LABEL_BOX_HALF_WIDTH = LABEL_BOX_WIDTH / 2 // 170px
 export const LABEL_BOX_HEIGHT = 250
 export const LABEL_BOX_HALF_HEIGHT = LABEL_BOX_HEIGHT / 2 // 45px
 
@@ -91,7 +91,7 @@ export const PROCESS_SELECTION_MAP = {
 }
 
 export const MC_TYPE_MAP = {
-  '01':  "1NEEDLE FLAT",
+  '01': "1NEEDLE FLAT",
   '02': "1NEEDLE POST",
   '03': "2NEEDLE FLAT",
   '04': "2NEEDLE POST",
@@ -166,26 +166,26 @@ export const THREAD_TYPE_MAP = {
   '21': "P120D/2PLY (RECYCLED)",
   '22': "P210D/3PLY (RECYCLED)",
   '23': "P200D/1PLY",
-  '24': "P200D/1PLY (COATS)", 
+  '24': "P200D/1PLY (COATS)",
   '25': "P200D/1PLY (RECYCLED)",
   '26': "P250D/3PLY",
   '27': "P250D/3PLY (COATS)",
   '28': "P250D/3PLY (RECYCLED)",
   '29': "#1~5:P150D/3PLY, #6:P200D/1PLY",
   '30': "#1~5:P150D/3PLY (COATS), #6:P200D/1PLY",
-  '31':"#1~5:P150D/3PLY, #6:P200D/1PLY (COATS)",  
-  '32':"#1~5:P150D/3PLY (COATS), #6:P200D/1PLY (COATS)",  
-  '33':"#1~5:P150D/3PLY(RECYCLED), #6:P200D/1PLY",
-  '34':"#1~5:P150D/3PLY, #6:P200D/1PLY(RECYCLED)",
-  '35':"#1~5:P150D/3PLY(RECYCLED), #6:P200D/1PLY(RECYCLED)",
-  '36':"#1~5:P120D/2PLY, #6:P200D/1PLY",
-  '37':"#1~5:P120D/2PLY (COATS), #6:P200D/1PLY",
-  '38':"#1~5:P120D/2PLY, #6:P200D/1PLY (COATS)",
-  '39':"#1~5:P120D/2PLY (COATS), #6:P200D/1PLY (COATS)",
-  '40':"#1~5:P120D/2PLY(RECYCLED), #6:P200D/1PLY",
-  '41':"#1~5:P120D/2PLY, #6:P200D/1PLY(RECYCLED)",
-  '42':"#1~5:P120D/2PLY(RECYCLED), #6:P200D/1PLY(RECYCLED)",
-  '43':"1260D/3PLY(TOP), 840D/3PLY(BOTTOM)"
+  '31': "#1~5:P150D/3PLY, #6:P200D/1PLY (COATS)",
+  '32': "#1~5:P150D/3PLY (COATS), #6:P200D/1PLY (COATS)",
+  '33': "#1~5:P150D/3PLY(RECYCLED), #6:P200D/1PLY",
+  '34': "#1~5:P150D/3PLY, #6:P200D/1PLY(RECYCLED)",
+  '35': "#1~5:P150D/3PLY(RECYCLED), #6:P200D/1PLY(RECYCLED)",
+  '36': "#1~5:P120D/2PLY, #6:P200D/1PLY",
+  '37': "#1~5:P120D/2PLY (COATS), #6:P200D/1PLY",
+  '38': "#1~5:P120D/2PLY, #6:P200D/1PLY (COATS)",
+  '39': "#1~5:P120D/2PLY (COATS), #6:P200D/1PLY (COATS)",
+  '40': "#1~5:P120D/2PLY(RECYCLED), #6:P200D/1PLY",
+  '41': "#1~5:P120D/2PLY, #6:P200D/1PLY(RECYCLED)",
+  '42': "#1~5:P120D/2PLY(RECYCLED), #6:P200D/1PLY(RECYCLED)",
+  '43': "1260D/3PLY(TOP), 840D/3PLY(BOTTOM)"
 }
 
 export const STITCHING_MARGIN_MAP = {
@@ -256,8 +256,8 @@ export const STITCHING_GUIDE_MAP = {
 // Settings Process 초기 데이터
 export const INITIAL_SETTINGS_DATA = {
   addedPartsIds: [],
-  processOrder: '',
-  processSelection: '',
+  step: '',
+  process: '',
   mcType: '',
   needleType: '',
   needleSize: '',
@@ -274,7 +274,7 @@ export const INITIAL_SETTINGS_DATA = {
 
 // Process Order 옵션
 export const PROCESS_ORDER_OPTIONS = [
-  { value: '', label: 'Select a process...'},
+  { value: '', label: 'Select a process...' },
   { value: 'STEP 01', label: 'STEP 01' },
   { value: 'STEP 02', label: 'STEP 02' },
   { value: 'STEP 03', label: 'STEP 03' },
@@ -403,3 +403,507 @@ export const DETAIL_ITEMS = [
   { key: 'bol', label: 'BOL' },
   { key: 'hash', label: '#' }
 ]
+
+// Detail Items 초기 데이터
+export const DETAIL_ITEMS_INIT = {
+  mcType: '',
+  needleType: '',
+  needleSize: '',
+  needlePoint: '',
+  threadType: '',
+  stitchingMargin: '',
+  spi: '',
+  stitchingGuideline: '',
+  stitchingLines: '',
+  stitchingGuide: '',
+  bol: '',
+  hash: ''
+}
+
+// Detail Items 시나리오 설정
+// CATEGORY -> GENDER -> PROCESS_SELECTION -> Detail Items
+export const DETAIL_ITEMS_SCENARIO = {
+  '01': { // M'S SPORTSTYLE INNOVATION
+    '01': { // M
+      // 일반 프로세스 (모든 카테고리/성별에 공통 적용 가능)
+      '01': { // 1 ROW STITCHING
+        mcType: '02',           // 1NEEDLE POST
+        needleType: '01',       // DPX5
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '02',   // 1.5
+        spi: '06',              // 8-9
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '03',    // P1-001
+        bol: '',
+        hash: ''
+      },
+      '02': { // 2 ROW STITCHING
+        mcType: '04',           // 2NEEDLE POST
+        needleType: '03',       // DBX1
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '08',   // 2/2
+        spi: '06',              // 8-9
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '04',   // P2-001
+        bol: '',
+        hash: ''
+      },
+      '03': { // COMPUTER STITCHING
+        mcType: '12',           // COMPUTER
+        needleType: '02',       // DPX17
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '06',              // 8-9
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '',      // empty
+        bol: '',
+        hash: ''
+      },
+      '04': { // ZIGZAG STITCHING
+        mcType: '05',           // ZIGZAG
+        needleType: '01',       // DPX5
+        needleSize: '07',       // #21
+        needlePoint: '01',       // R
+        threadType: '10',       // SPUN 30S/3PLY
+        stitchingMargin: '09',   // 3/3
+        spi: '01',              // 7-8
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '07',   // Z3-001
+        bol: '',
+        hash: ''
+      },
+      '05': { // SURGE STITCHING
+        mcType: '07',           // SURGE
+        needleType: '08',       // SMX1014B
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '29',       // #1~5:P150D/3PLY, #6:P200D/1PLY
+        stitchingMargin: '',     // empty
+        spi: '04',              // 10-11
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '08',   // SG-001
+        bol: '',
+        hash: ''
+      },
+      '06': { // OVERLOCK STITCHING
+        mcType: '13',           // OVERLOCK
+        needleType: '12',       // DCX1
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '01',              // 7-8
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '11',   // OL-001
+        bol: '',
+        hash: ''
+      },
+      '07': { // ARIANCE
+        mcType: '08',           // ARIANCE
+        needleType: '11',       // CPX5 (이미지에는 CPx6로 표시되어 있으나 MAP에는 CPX5만 존재)
+        needleSize: '08',       // #27
+        needlePoint: '01',       // R
+        threadType: '43',       // 1260D/3PLY(TOP), 840D/3PLY(BOTTOM)
+        stitchingMargin: '',     // empty
+        spi: '',                // 2.5-3.0 (SPI_MAP에 해당 값 없음)
+        stitchingGuideline: '',   // empty
+        stitchingLines: '01',   // 1
+        stitchingGuide: '14',   // A1-001
+        bol: '',
+        hash: ''
+      },
+      '08': { // GATHERING
+        mcType: '09',           // GATHERING
+        needleType: '02',       // DPX17
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '09',       // N280D/3PLY (STITCH TO PP TAPE )
+        stitchingMargin: '',     // empty
+        spi: '06',              // 8-9
+        stitchingGuideline: '',   // empty
+        stitchingLines: '01',   // 1
+        stitchingGuide: '12',   // G-001
+        bol: '',
+        hash: ''
+      },
+      '09': { // STROBEL
+        mcType: '10',           // STROBEL
+        needleType: '02',       // DPX17
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '03',              // 9-10
+        stitchingGuideline: '',   // empty
+        stitchingLines: '01',   // 1
+        stitchingGuide: '13',   // ST-001
+        bol: '',
+        hash: ''
+      },
+      // M'S SPORTSTYLE INNOVATION, M 전용 프로세스
+      '18': { // STITCH & TURN
+        mcType: '02',           // 1NEEDLE POST
+        needleType: '01',       // DPX5
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '05',   // 3
+        spi: '06',              // 8-9
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '03',   // P1-001
+        bol: '',
+        hash: ''
+      },
+      '19': { // CLOSED SEAM STITCHING
+        mcType: '02',           // 1NEEDLE POST
+        needleType: '02',       // DPX17
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '11',   // 4
+        spi: '05',              // 11-12
+        stitchingGuideline: '06', // CLOSED SEAM <=20cm
+        stitchingLines: '01',   // 1
+        stitchingGuide: '03',   // P1-001
+        bol: '',
+        hash: ''
+      }
+    }
+    // 다른 GENDER ('02': W, '03': GS 등)는 필요시 추가
+  },
+  '02': { // W'S SPORTSTYLE INNOVATION
+    '02': { // W
+      '01': { // 1 ROW STITCHING
+        mcType: '02',           // 1NEEDLE POST
+        needleType: '01',       // DPX5
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '02',   // 1.5
+        spi: '05',              // 11-12
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '03',    // P1-001
+        bol: '',
+        hash: ''
+      },
+      '02': { // 2 ROW STITCHING
+        mcType: '04',           // 2NEEDLE POST
+        needleType: '01',       // DPX5
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '06',   // 1.5/1.5
+        spi: '05',              // 11-12
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '04',   // P2-001
+        bol: '',
+        hash: ''
+      },
+      '03': { // COMPUTER STITCHING
+        mcType: '12',           // COMPUTER
+        needleType: '01',       // DPX5
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '05',              // 11-12
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '',      // empty
+        bol: '',
+        hash: ''
+      },
+      '04': { // ZIGZAG STITCHING
+        mcType: '05',           // ZIGZAG
+        needleType: '01',       // DPX5
+        needleSize: '07',       // #21
+        needlePoint: '01',       // R
+        threadType: '10',       // SPUN 30S/3PLY
+        stitchingMargin: '09',   // 3/3
+        spi: '02',              // 7-9
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '05',   // Z1-001
+        bol: '',
+        hash: ''
+      },
+      '05': { // SURGE STITCHING
+        mcType: '07',           // SURGE
+        needleType: '08',       // SMX1014B
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '36',       // #1~5:P120D/2PLY, #6:P200D/1PLY (이미지에는 P1200/3PLY, P2000/1PLY로 표시되어 있으나 MAP에는 P120D/2PLY만 존재)
+        stitchingMargin: '',     // empty
+        spi: '04',              // 10-11
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '08',   // SG-001
+        bol: '',
+        hash: ''
+      },
+      '06': { // OVERLOCK STITCHING
+        mcType: '13',           // OVERLOCK
+        needleType: '12',       // DCX1
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '01',              // 7-8
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '11',   // OL-001
+        bol: '',
+        hash: ''
+      },
+      '07': { // ARIANCE
+        mcType: '08',           // ARIANCE
+        needleType: '11',       // CPX5 (이미지에는 CPx6로 표시되어 있으나 MAP에는 CPX5만 존재)
+        needleSize: '08',       // #27
+        needlePoint: '01',       // R
+        threadType: '43',       // 1260D/3PLY(TOP), 840D/3PLY(BOTTOM)
+        stitchingMargin: '13',   // 2.5-3.0
+        spi: '',                // empty
+        stitchingGuideline: '',   // empty
+        stitchingLines: '01',   // 1
+        stitchingGuide: '14',   // A1-001
+        bol: '',
+        hash: ''
+      },
+      '08': { // GATHERING
+        mcType: '09',           // GATHERING
+        needleType: '02',       // DPX17
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '09',       // N280D/3PLY (STITCH TO PP TAPE )
+        stitchingMargin: '',     // empty
+        spi: '06',              // 8-9
+        stitchingGuideline: '',   // empty
+        stitchingLines: '01',   // 1
+        stitchingGuide: '12',   // G-001
+        bol: '',
+        hash: ''
+      },
+      '09': { // STROBEL
+        mcType: '10',           // STROBEL
+        needleType: '02',       // DPX17
+        needleSize: '07',       // #21
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '03',              // 9-10
+        stitchingGuideline: '',   // empty
+        stitchingLines: '01',   // 1
+        stitchingGuide: '13',   // ST-001
+        bol: '',
+        hash: ''
+      },
+      // W'S SPORTSTYLE INNOVATION, W 전용 프로세스 (LAB 섹션)
+      '18': { // STITCH & TURN
+        mcType: '02',           // 1NEEDLE POST
+        needleType: '01',       // DPX5
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '05',   // 3
+        spi: '05',              // 11-12
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '03',   // P1-001
+        bol: '',
+        hash: ''
+      },
+      '19': { // CLOSED SEAM STITCHING
+        mcType: '02',           // 1NEEDLE POST
+        needleType: '01',       // DPX5
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '10',   // 2
+        spi: '05',              // 11-12
+        stitchingGuideline: '06', // CLOSED SEAM <=20cm
+        stitchingLines: '01',   // 1
+        stitchingGuide: '03',   // P1-001
+        bol: '',
+        hash: ''
+      }
+    }
+    // 다른 GENDER는 필요시 추가
+  },
+  '03': { // M'S RUNNING
+    '01': { // M
+      '01': { // 1 ROW STITCHING
+        mcType: '02',           // 1NEEDLE POST
+        needleType: '01',       // DPX5
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '02',   // 1.5
+        spi: '03',              // 9-10
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '03',    // P1-001
+        bol: '',
+        hash: ''
+      },
+      '02': { // 2 ROW STITCHING
+        mcType: '04',           // 2NEEDLE POST
+        needleType: '01',       // DPX5
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '06',   // 1.5/1.5
+        spi: '03',              // 9-10
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '04',   // P2-001
+        bol: '',
+        hash: ''
+      },
+      '03': { // COMPUTER STITCHING
+        mcType: '12',           // COMPUTER
+        needleType: '02',       // DPX17
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '03',              // 9-10
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '',      // empty
+        bol: '',
+        hash: ''
+      },
+      '04': { // ZIGZAG STITCHING
+        mcType: '05',           // ZIGZAG
+        needleType: '01',       // DPX5
+        needleSize: '07',       // #21
+        needlePoint: '01',       // R
+        threadType: '',         // N1200/2PLY (THREAD_TYPE_MAP에 해당 값 없음)
+        stitchingMargin: '09',   // 3/3
+        spi: '02',              // 7-9
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '05',   // Z1-001
+        bol: '',
+        hash: ''
+      },
+      '05': { // SURGE STITCHING
+        mcType: '07',           // SURGE
+        needleType: '08',       // SMX1014B
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '29',       // #1~5:P150D/3PLY, #6:P200D/1PLY (이미지에는 P2000/1PLY로 표시되어 있으나 MAP에는 P200D/1PLY만 존재)
+        stitchingMargin: '',     // empty
+        spi: '04',              // 10-11
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '08',   // SG-001
+        bol: '',
+        hash: ''
+      },
+      '06': { // OVERLOCK STITCHING
+        mcType: '13',           // OVERLOCK
+        needleType: '12',       // DCX1
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '01',              // 7-8
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '11',   // OL-001
+        bol: '',
+        hash: ''
+      },
+      '07': { // ARIANCE
+        mcType: '08',           // ARIANCE
+        needleType: '02',       // DPX17
+        needleSize: '07',       // #21
+        needlePoint: '01',       // R
+        threadType: '01',       // N210D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '06',              // 8-9
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '14',   // A1-001
+        bol: '',
+        hash: ''
+      },
+      '08': { // GATHERING
+        mcType: '09',           // GATHERING
+        needleType: '02',       // DPX17
+        needleSize: '07',       // #21
+        needlePoint: '01',       // R
+        threadType: '09',       // N280D/3PLY (STITCH TO PP TAPE )
+        stitchingMargin: '',     // empty
+        spi: '03',              // 9-10
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '12',   // G-001
+        bol: '',
+        hash: ''
+      },
+      '09': { // STROBEL
+        mcType: '10',           // STROBEL
+        needleType: '02',       // DPX17
+        needleSize: '07',       // #21
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '',     // empty
+        spi: '03',              // 9-10
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '13',   // ST-001
+        bol: '',
+        hash: ''
+      },
+      // M'S RUNNING, M 전용 프로세스
+      '18': { // STITCH & TURN
+        mcType: '02',           // 1NEEDLE POST
+        needleType: '01',       // DPX5
+        needleSize: '05',       // #18
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '05',   // 3
+        spi: '03',              // 9-10
+        stitchingGuideline: '01', // S-SHORT(<20cm)
+        stitchingLines: '01',   // 1
+        stitchingGuide: '03',   // P1-001
+        bol: '',
+        hash: ''
+      },
+      '19': { // CLOSED SEAM STITCHING
+        mcType: '02',           // 1NEEDLE POST
+        needleType: '02',       // DPX17
+        needleSize: '04',       // #16
+        needlePoint: '01',       // R
+        threadType: '05',       // N280D/3PLY
+        stitchingMargin: '12',   // 10
+        spi: '03',              // 9-10
+        stitchingGuideline: '06', // CLOSED SEAM <=20cm
+        stitchingLines: '01',   // 1
+        stitchingGuide: '03',   // P1-001
+        bol: '',
+        hash: ''
+      }
+    }
+    // 다른 GENDER는 필요시 추가
+  }
+  // 다른 CATEGORY는 필요시 추가
+}
+

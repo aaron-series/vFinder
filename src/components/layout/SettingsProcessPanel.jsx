@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { 
   PROCESS_ORDER_OPTIONS, 
   PROCESS_SELECTION_OPTIONS, 
@@ -12,7 +12,9 @@ import {
   SPI_OPTIONS,
   STITCHING_GUIDELINE_OPTIONS,
   STITCHING_LINES_OPTIONS,
-  STITCHING_GUIDE_OPTIONS
+  STITCHING_GUIDE_OPTIONS,
+  DETAIL_ITEMS_INIT,
+  DETAIL_ITEMS_SCENARIO
 } from '../../constants'
 
 const SettingsProcessPanel = ({
@@ -36,25 +38,58 @@ const SettingsProcessPanel = ({
   handleEdgeDelete,
   handleNodeSettingsClick,
   handleNodeConfirm,
-  rfInstance
+  rfInstance,
+  formData
 }) => {
-  const processOrderSelectRef = useRef(null)
-  const processSelectionSelectRef = useRef(null)
+  // React Hooks 규칙: hooks는 항상 최상단에서 선언되어야 함
+  // 조건부 return 전에 hooks를 선언해야 React가 hooks 호출 순서를 추적할 수 있음
+  const stepSelectRef = useRef(null)
+  const processSelectRef = useRef(null)
+  const detailItemRefs = useRef(new Map())
+  const [highlightedItems, setHighlightedItems] = useState(new Set())
 
   // focusField prop이 변경되면 해당 필드에 포커스
   useEffect(() => {
-    if (focusField === 'processOrder' && processOrderSelectRef.current) {
+    if (focusField === 'step' && stepSelectRef.current) {
       setTimeout(() => {
-        processOrderSelectRef.current?.focus()
-        processOrderSelectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        stepSelectRef.current?.focus()
+        stepSelectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }, 100)
-    } else if (focusField === 'processSelection' && processSelectionSelectRef.current) {
+    } else if (focusField === 'process' && processSelectRef.current) {
       setTimeout(() => {
-        processSelectionSelectRef.current?.focus()
-        processSelectionSelectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        processSelectRef.current?.focus()
+        processSelectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }, 100)
     }
   }, [focusField])
+
+  // 현재 편집 중인 그룹의 connector 찾기
+  // 1. selectedNodeId가 edge ID인 경우 (그룹과 그룹 연결)
+  let currentGroupConnector = selectedNodeId && edges?.find(e => e?.id === selectedNodeId)
+    ? nodes?.find(n => 
+        n && n.type === 'groupConnector' && 
+        n.data?.groupEdges && 
+        n.data.groupEdges.includes(selectedNodeId)
+      )
+    : null
+
+  // 2. selectedNodeId가 edge ID가 아니고, addedParts에 그룹 connector가 있는 경우 (그룹과 노드 연결)
+  if (!currentGroupConnector && selectedNodeId && addedParts && Array.isArray(addedParts)) {
+    // addedParts에서 그룹 connector 찾기
+    const groupConnectorInAddedParts = addedParts.find(part => {
+      const partId = typeof part === 'string' ? part : (part?.id || null)
+      if (!partId) return false
+      const node = nodes?.find(n => n?.id === partId)
+      return node && node.type === 'groupConnector' && node.data?.isGroupBox === true
+    })
+    
+    if (groupConnectorInAddedParts) {
+      const connectorId = typeof groupConnectorInAddedParts === 'string' 
+        ? groupConnectorInAddedParts 
+        : groupConnectorInAddedParts.id
+      currentGroupConnector = nodes?.find(n => n?.id === connectorId)
+    }
+  }
 
   // 그룹 내 모든 노드가 확정 상태인지 확인
   const allNodesConfirmed = addedParts && Array.isArray(addedParts) && addedParts.length > 0 &&
@@ -67,14 +102,22 @@ const SettingsProcessPanel = ({
       // part가 객체인 경우
       return part && part.data?.isConfirmed === true
     })
-  const isNodeConfirmed = allNodesConfirmed
+  
+  // 그룹과 그룹 연결, 그룹과 노드 연결 시: 현재 편집 중인 그룹 connector가 미확정이면 하위 그룹 connector의 isConfirmed 무시
+  let isNodeConfirmed = allNodesConfirmed
+  let effectiveIsEdgeConfirmed = isEdgeConfirmed // prop을 직접 수정하지 않고 로컬 변수 사용
+  if (currentGroupConnector && currentGroupConnector.data?.isConfirmed === false) {
+    // 현재 그룹이 미확정이면 편집 모드 (하위 그룹 connector들의 isConfirmed 무시)
+    effectiveIsEdgeConfirmed = false
+    isNodeConfirmed = false
+  }
 
   // 확정된 edge이거나 확정된 노드인 경우 읽기 전용
-  const isReadOnly = isEdgeConfirmed || isNodeConfirmed
+  const isReadOnly = effectiveIsEdgeConfirmed || isNodeConfirmed
 
-  const handleProcessOrderChange = (e) => {
-    const newProcessOrder = e.target.value
-    setSettingsData({ ...settingsData, processOrder: newProcessOrder })
+  const handleStepChange = (e) => {
+    const newStep = e.target.value
+    setSettingsData({ ...settingsData, step: newStep })
 
     // 선택된 노드와 연결된 모든 노드들의 step 업데이트
     if (selectedNodeId && findAllConnectedPartNodes) {
@@ -82,25 +125,103 @@ const SettingsProcessPanel = ({
       // 함수형 업데이트를 사용하여 최신 상태 가져오기
       setEdges((currentEdges) => {
         setNodes((currentNodes) => {
+          // edge ID인지 확인
+          const targetEdge = currentEdges.find(e => e && e.id === selectedNodeId)
+          
+          // edge인 경우 savedSettings의 addedPartsIds 사용 (그룹 경계 존중)
+          let connectedNodeIds = new Set()
+          let connectedEdgeIds = new Set()
+          
+          if (targetEdge) {
+            // savedSettings가 있는 경우 (확정된 그룹)
+            if (targetEdge.data?.savedSettings?.addedPartsIds) {
+              // savedSettings의 addedPartsIds에서 partNode ID만 추출
+              const addedPartsIds = targetEdge.data.savedSettings.addedPartsIds
+              addedPartsIds.forEach(nodeId => {
+                const node = currentNodes.find(n => n && n.id === nodeId)
+                if (node && node.type === 'partNode') {
+                  connectedNodeIds.add(nodeId)
+                }
+              })
+              
+              // 해당 그룹에 속한 edge만 찾기 (savedSettings의 groupId 사용)
+              if (targetEdge.data?.savedSettings?.groupId) {
+                const groupId = targetEdge.data.savedSettings.groupId
+                currentEdges.forEach(edge => {
+                  // 같은 그룹에 속한 edge만 포함 (그룹 경계 존중)
+                  if (edge.data?.savedSettings?.groupId === groupId) {
+                    connectedEdgeIds.add(edge.id)
+                  }
+                })
+              } else {
+                // groupId가 없으면 연결된 노드와 연결된 edge 찾기
+                currentEdges.forEach(edge => {
+                  if (connectedNodeIds.has(edge.source) || connectedNodeIds.has(edge.target)) {
+                    connectedEdgeIds.add(edge.id)
+                  }
+                })
+              }
+            } else {
+              // savedSettings가 없는 경우 (확정되지 않은 그룹)
+              // 그룹 connector를 찾아서 groupEdges 사용
+              const groupConnector = currentNodes.find(n =>
+                n && n.type === 'groupConnector' &&
+                n.data?.isConfirmed === false &&
+                n.data?.isGroupBox === true &&
+                (n.data?.groupEdges?.includes(selectedNodeId) ||
+                  (n.data?.nodeIds?.includes(targetEdge.source) &&
+                   n.data?.nodeIds?.includes(targetEdge.target)))
+              )
 
-          // 연결된 모든 노드 찾기
-          const connectedPartNodes = findAllConnectedPartNodes(selectedNodeId, currentNodes, currentEdges)
-          if (!connectedPartNodes || !Array.isArray(connectedPartNodes)) {
-            return currentNodes
-          }
-          const connectedNodeIds = new Set(connectedPartNodes.map(n => n && n.id).filter(Boolean))
+              if (groupConnector && groupConnector.data?.groupEdges) {
+                // 그룹 connector의 groupEdges를 사용하여 그룹에 속한 edge 찾기
+                groupConnector.data.groupEdges.forEach(edgeId => {
+                  connectedEdgeIds.add(edgeId)
+                })
+                
+                // 그룹에 속한 노드 ID 수집
+                const groupNodeIds = groupConnector.data?.nodeIds || []
+                groupNodeIds.forEach(nodeId => {
+                  const node = currentNodes.find(n => n && n.id === nodeId)
+                  if (node && node.type === 'partNode') {
+                    connectedNodeIds.add(nodeId)
+                  }
+                })
+              } else {
+                // 그룹 connector를 찾지 못한 경우 기존 로직 사용
+                const connectedPartNodes = findAllConnectedPartNodes(selectedNodeId, currentNodes, currentEdges)
+                if (!connectedPartNodes || !Array.isArray(connectedPartNodes)) {
+                  return currentNodes
+                }
+                connectedNodeIds = new Set(connectedPartNodes.map(n => n && n.id).filter(Boolean))
 
-          // 연결된 모든 노드와 연결된 모든 edge 찾기
-          const connectedEdgeIds = new Set()
-          currentEdges.forEach(edge => {
-            if (connectedNodeIds.has(edge.source) || connectedNodeIds.has(edge.target)) {
-              connectedEdgeIds.add(edge.id)
+                // 연결된 모든 노드와 연결된 모든 edge 찾기
+                currentEdges.forEach(edge => {
+                  if (connectedNodeIds.has(edge.source) || connectedNodeIds.has(edge.target)) {
+                    connectedEdgeIds.add(edge.id)
+                  }
+                })
+              }
             }
-          })
+          } else {
+            // edge가 아닌 경우 기존 로직 사용
+            const connectedPartNodes = findAllConnectedPartNodes(selectedNodeId, currentNodes, currentEdges)
+            if (!connectedPartNodes || !Array.isArray(connectedPartNodes)) {
+              return currentNodes
+            }
+            connectedNodeIds = new Set(connectedPartNodes.map(n => n && n.id).filter(Boolean))
+
+            // 연결된 모든 노드와 연결된 모든 edge 찾기
+            currentEdges.forEach(edge => {
+              if (connectedNodeIds.has(edge.source) || connectedNodeIds.has(edge.target)) {
+                connectedEdgeIds.add(edge.id)
+              }
+            })
+          }
 
           // 단일 노드인지 여러 노드 연결인지 구분
-          const isSingleNode = connectedPartNodes.length === 1 && connectedEdgeIds.size === 0
-          const isMultipleNodes = connectedPartNodes.length > 1 || connectedEdgeIds.size > 0
+          const isSingleNode = connectedNodeIds.size === 1 && connectedEdgeIds.size === 0
+          const isMultipleNodes = connectedNodeIds.size > 1 || connectedEdgeIds.size > 0
 
           // 단일 노드와 여러 노드 연결의 처리 방식 분리
           if (!isReadOnly) {
@@ -113,7 +234,7 @@ const SettingsProcessPanel = ({
                     ...node,
                     data: {
                       ...node.data,
-                      step: newProcessOrder.replace('STEP ', 'STEP. ')
+                      step: newStep.replace('STEP ', 'STEP. ')
                     }
                   }
                 }
@@ -131,7 +252,7 @@ const SettingsProcessPanel = ({
                     ...edge,
                     data: {
                       ...edge.data,
-                      step: newProcessOrder.replace('STEP ', 'STEP. ')
+                      step: newStep.replace('STEP ', 'STEP. ')
                     }
                   }
                 }
@@ -156,7 +277,7 @@ const SettingsProcessPanel = ({
                         ...edge,
                         data: {
                           ...edge.data,
-                          step: newProcessOrder.replace('STEP ', 'STEP. ')
+                          step: newStep.replace('STEP ', 'STEP. ')
                         }
                       })
                     } else {
@@ -284,8 +405,13 @@ const SettingsProcessPanel = ({
     }
   }
 
+  // isOpen이 false일 때는 렌더링하지 않음 (불필요한 리렌더링 방지)
+  if (!isOpen) {
+    return null
+  }
+
   return (
-    <div className={`settings-process-panel ${isOpen ? 'open' : ''}`}>
+    <div className="settings-process-panel open">
       <div className="settings-process-header">
         <h3>Settings Process</h3>
         <button
@@ -327,13 +453,13 @@ const SettingsProcessPanel = ({
 
         {/* 공정 순서 */}
         <div className="settings-section">
-          <label className="settings-label">Process Order</label>
+          <label className="settings-label">Step</label>
           <select
-            ref={processOrderSelectRef}
+            ref={stepSelectRef}
             className="settings-select"
-            value={settingsData.processOrder}
+            value={settingsData.step}
             disabled={isReadOnly}
-            onChange={handleProcessOrderChange}
+            onChange={handleStepChange}
           >
             {PROCESS_ORDER_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -343,13 +469,76 @@ const SettingsProcessPanel = ({
 
         {/* 공정 선택 */}
         <div className="settings-section">
-          <label className="settings-label">Process Selection</label>
+          <label className="settings-label">Process</label>
           <select
-            ref={processSelectionSelectRef}
+            ref={processSelectRef}
             className="settings-select"
-            value={settingsData.processSelection}
+            value={settingsData.process}
             disabled={isReadOnly}
-            onChange={(e) => setSettingsData({ ...settingsData, processSelection: e.target.value })}
+            onChange={(e) => {
+              const newProcess = e.target.value
+              
+              // 시나리오 기반으로 Detail Items 자동 채우기
+              if (newProcess && formData?.category && formData?.gender) {
+                const scenario = DETAIL_ITEMS_SCENARIO[formData.category]?.[formData.gender]?.[newProcess]
+                
+                if (scenario) {
+                  // 시나리오에서 찾은 값으로 Detail Items 업데이트
+                  const updatedData = {
+                    ...settingsData,
+                    process: newProcess,
+                    mcType: scenario.mcType || '',
+                    needleType: scenario.needleType || '',
+                    needleSize: scenario.needleSize || '',
+                    needlePoint: scenario.needlePoint || '',
+                    threadType: scenario.threadType || '',
+                    stitchingMargin: scenario.stitchingMargin || '',
+                    spi: scenario.spi || '',
+                    stitchingGuideline: scenario.stitchingGuideline || '',
+                    stitchingLines: scenario.stitchingLines || '',
+                    stitchingGuide: scenario.stitchingGuide || '',
+                    bol: scenario.bol || '',
+                    hash: scenario.hash || ''
+                  }
+                  
+                  // 변경된 항목들 추적
+                  const changedItems = new Set()
+                  DETAIL_ITEMS.forEach(item => {
+                    const oldValue = settingsData[item.key] || ''
+                    const newValue = updatedData[item.key] || ''
+                    if (oldValue !== newValue && newValue !== '') {
+                      changedItems.add(item.key)
+                    }
+                  })
+                  
+                  setSettingsData(updatedData)
+                  
+                  // 변경된 항목들에 포커스 효과 적용
+                  if (changedItems.size > 0) {
+                    setHighlightedItems(changedItems)
+                    
+                    // 애니메이션 후 하이라이트 제거
+                    setTimeout(() => {
+                      setHighlightedItems(new Set())
+                    }, 2000)
+                  }
+                } else {
+                  // 시나리오를 찾지 못한 경우 process 업데이트 및 detail items 초기화
+                  setSettingsData({ 
+                    ...settingsData, 
+                    process: newProcess,
+                    ...DETAIL_ITEMS_INIT
+                  })
+                }
+              } else {
+                // category나 gender가 없으면 process 업데이트 및 detail items 초기화
+                setSettingsData({ 
+                  ...settingsData, 
+                  process: newProcess,
+                  ...DETAIL_ITEMS_INIT
+                })
+              }
+            }}
           >
             {PROCESS_SELECTION_OPTIONS.map(option => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -387,10 +576,22 @@ const SettingsProcessPanel = ({
                 options = STITCHING_GUIDE_OPTIONS
               }
               
+              const isHighlighted = highlightedItems.has(item.key)
+              
               return (
-                <div key={item.key} className="detail-item">
+                <div 
+                  key={item.key} 
+                  className={`detail-item ${isHighlighted ? 'highlighted' : ''}`}
+                >
                   <label>{item.label}</label>
                   <select
+                    ref={(el) => {
+                      if (el) {
+                        detailItemRefs.current.set(item.key, el)
+                      } else {
+                        detailItemRefs.current.delete(item.key)
+                      }
+                    }}
                     className="settings-select"
                     value={settingsData[item.key]}
                     disabled={isReadOnly}
@@ -411,3 +612,4 @@ const SettingsProcessPanel = ({
 }
 
 export default SettingsProcessPanel
+
