@@ -9,6 +9,7 @@ import { NODE_HEIGHT } from '../constants'
 
 /**
  * 노드 관련 핸들러 훅
+ * - 노드 값 변경, 삭제, 편집, 확정, 드래그 등의 상호작용을 처리합니다.
  */
 export const useNodeHandlers = ({
   nodes,
@@ -32,11 +33,15 @@ export const useNodeHandlers = ({
 }) => {
   // 드래그 중인 그룹 정보 추적
   const draggingGroupRef = useRef(null)
-  // handleNodeEdit 참조 (순환 참조 방지)
+  // 순환 참조 방지용 Ref
   const handleNodeEditRef = useRef(null)
-  // handleNodeConfirm 참조 (순환 참조 방지)
   const handleNodeConfirmRef = useRef(null)
-  // 노드 Step Value 변경 핸들러
+
+  // =========================================================================================
+  // 1. 단순 값 변경 핸들러
+  // =========================================================================================
+
+  // 노드 Step Value (입력값) 변경 핸들러
   const handleNodeStepChange = useCallback((id, value) => {
     setNodes((nds) =>
       nds.map((node) => {
@@ -48,12 +53,14 @@ export const useNodeHandlers = ({
     )
   }, [setNodes])
 
-  // 노드 삭제 핸들러
+  // =========================================================================================
+  // 2. 삭제 핸들러
+  // =========================================================================================
+
   const handleNodeDelete = useCallback((id) => {
-    // 삭제되는 노드가 현재 설정패널에 열려있는지 확인
+    // 삭제되는 노드가 현재 설정패널에 열려있는지 확인하고 패널 닫기
     setSelectedNodeId((currentSelectedId) => {
       if (currentSelectedId === id) {
-        // 설정패널 닫기
         setShowSettingsPanel(false)
         return null
       }
@@ -61,21 +68,20 @@ export const useNodeHandlers = ({
     })
 
     setNodes((nds) => {
-      // 삭제되는 노드가 groupConnector인지 확인
+      // 1. 그룹 커넥터 삭제 시 관련 Edge 및 선택 상태 처리
       const nodeToDelete = EditorUtils.findNode(nds, id)
       if (nodeToDelete && nodeToDelete.type === 'groupConnector') {
-        // groupConnector 삭제 시 관련 edge들도 확인
         setEdges((eds) => {
           const relatedEdges = eds.filter(edge => {
-            // edge의 savedSettings에 connectorId가 있고, 삭제되는 connector와 일치하는지 확인
+            // savedSettings에 connectorId가 있는 경우
             if (edge.data?.savedSettings?.connectorId === id) {
               return true
             }
-            // edge의 groupEdges에 포함된 edge들 중 삭제되는 connector와 관련이 있는지 확인
+            // groupEdges에 포함된 경우 (fallback)
             return false
           })
           
-          // 관련 edge 중 현재 선택된 edge가 있는지 확인
+          // 관련 edge가 선택되어 있었다면 패널 닫기
           if (relatedEdges.length > 0) {
             setSelectedNodeId((currentSelectedId) => {
               const hasSelectedEdge = relatedEdges.some(edge => edge.id === currentSelectedId)
@@ -86,28 +92,22 @@ export const useNodeHandlers = ({
               return currentSelectedId
             })
           }
-          
           return eds
         })
       }
 
-      // 노드 삭제
+      // 2. 노드 삭제 수행
       const filteredNodes = nds.filter((node) => node.id !== id)
 
-      // 파츠 노드만 필터링 (groupConnector 제외)
+      // 3. 파츠 노드 번호(number) 재정렬
       const partNodes = filteredNodes.filter(n => n && n.type === 'partNode')
-
-      // 파츠 노드 번호 재정렬
       const updatedNodes = filteredNodes.map(node => {
         if (node && node.type === 'partNode') {
           const nodeIndex = partNodes.findIndex(n => n.id === node.id)
           const nodeNumber = nodeIndex + 1
           return {
             ...node,
-            data: {
-              ...node.data,
-              number: nodeNumber
-            }
+            data: { ...node.data, number: nodeNumber }
           }
         }
         return node
@@ -115,18 +115,27 @@ export const useNodeHandlers = ({
 
       return updatedNodes
     })
+
+    // 연결된 엣지도 함께 삭제
     setEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id))
   }, [setNodes, setEdges, setShowSettingsPanel, setSelectedNodeId])
 
-  // 노드 편집 핸들러
+  // =========================================================================================
+  // 3. 편집 핸들러 (Edit Mode 진입)
+  // =========================================================================================
+
   const handleNodeEdit = useCallback((id) => {
     setEdges((eds) => {
       const targetEdge = EditorUtils.findEdge(eds, id)
 
+      // ---------------------------------------------------------
+      // Case A: Edge(그룹) 편집
+      // ---------------------------------------------------------
       if (targetEdge) {
         setNodes((nds) => {
           const editableNodeIds = new Set()
 
+          // 1. 편집 대상 노드 식별 (savedSettings 또는 Edge Source/Target)
           if (targetEdge.data?.savedSettings?.addedPartsIds && Array.isArray(targetEdge.data.savedSettings.addedPartsIds)) {
             targetEdge.data.savedSettings.addedPartsIds.forEach(nodeId => {
               const node = EditorUtils.findNode(nds, nodeId)
@@ -138,21 +147,17 @@ export const useNodeHandlers = ({
             const sourceNode = EditorUtils.findNode(nds, targetEdge.source)
             const targetNode = EditorUtils.findNode(nds, targetEdge.target)
 
-            if (sourceNode && sourceNode.type === 'partNode') {
-              editableNodeIds.add(sourceNode.id)
-            }
-            if (targetNode && targetNode.type === 'partNode') {
-              editableNodeIds.add(targetNode.id)
-            }
+            if (sourceNode && sourceNode.type === 'partNode') editableNodeIds.add(sourceNode.id)
+            if (targetNode && targetNode.type === 'partNode') editableNodeIds.add(targetNode.id)
           }
 
+          // 2. 편집 대상 그룹 커넥터 식별
           const targetGroupId = targetEdge.data?.savedSettings?.groupId
           const targetConnectorId = targetEdge.data?.savedSettings?.connectorId
-
-          // targetGroupConnector 찾기 (savedSettings가 있으면 사용, 없으면 groupEdges로 찾기)
           let targetGroupConnector = null
           let finalTargetGroupId = targetGroupId
           
+          // ID로 찾기
           if (targetConnectorId || targetGroupId) {
             targetGroupConnector = nds.find(n =>
               n && n.type === 'groupConnector' &&
@@ -163,7 +168,7 @@ export const useNodeHandlers = ({
             }
           }
 
-          // savedSettings가 없으면 groupEdges로 커넥터 찾기
+          // groupEdges로 찾기 (fallback)
           if (!targetGroupConnector) {
             targetGroupConnector = nds.find(n =>
               n && n.type === 'groupConnector' &&
@@ -177,25 +182,17 @@ export const useNodeHandlers = ({
 
           const targetGroupEdgeIds = new Set()
           if (targetGroupConnector?.data?.groupEdges) {
-            targetGroupConnector.data.groupEdges.forEach(edgeId => {
-              targetGroupEdgeIds.add(edgeId)
-            })
+            targetGroupConnector.data.groupEdges.forEach(edgeId => targetGroupEdgeIds.add(edgeId))
           } else {
             targetGroupEdgeIds.add(targetEdge.id)
           }
 
-          const editableEdges = eds.filter(edge => {
-            if (targetGroupEdgeIds.has(edge.id)) {
-              return true
-            }
-            return false
-          })
-
+          // 3. 편집할 Edge 및 커넥터 ID 확정
+          const editableEdges = eds.filter(edge => targetGroupEdgeIds.has(edge.id))
           const editableEdgeIds = new Set(editableEdges.map(e => e.id))
-
           const editableConnectorIds = new Set()
 
-          // savedSettings에서 connectorId나 groupId가 있으면 사용
+          // savedSettings 기반 커넥터 식별
           if (targetConnectorId || targetGroupId) {
             nds.forEach(node => {
               if (node && node.type === 'groupConnector') {
@@ -206,12 +203,11 @@ export const useNodeHandlers = ({
             })
           }
 
-          // savedSettings가 없거나 찾지 못한 경우, groupEdges로 정확히 일치하는 커넥터 찾기
+          // groupEdges 일치 여부로 커넥터 식별 (fallback)
           if (editableConnectorIds.size === 0 && targetGroupConnector) {
             editableConnectorIds.add(targetGroupConnector.id)
           }
 
-          // 여전히 찾지 못한 경우, 모든 커넥터를 검사하여 groupEdges가 정확히 일치하는 것 찾기
           if (editableConnectorIds.size === 0) {
             nds.forEach(node => {
               if (node && node.type === 'groupConnector' && node.data?.groupEdges) {
@@ -228,6 +224,7 @@ export const useNodeHandlers = ({
             })
           }
 
+          // 4. 하위 그룹 커넥터 식별 (다시 표시해야 함)
           const childGroupConnectorIds = new Set()
           if (targetEdge.data?.savedSettings?.addedPartsIds && Array.isArray(targetEdge.data.savedSettings.addedPartsIds)) {
             targetEdge.data.savedSettings.addedPartsIds.forEach(nodeId => {
@@ -238,48 +235,36 @@ export const useNodeHandlers = ({
             })
           }
 
+          // 5. 노드 상태 업데이트 (편집 모드로 전환)
           const updatedNodes = nds.map(node => {
+            // 파츠 노드: 편집 모드
             if (editableNodeIds.has(node.id)) {
               return {
                 ...node,
                 draggable: true,
-                data: {
-                  ...node.data,
-                  isConfirmed: false
-                }
+                data: { ...node.data, isConfirmed: false }
               }
             }
+            // 그룹 커넥터 처리
             if (node.type === 'groupConnector') {
+              // 하위 그룹 커넥터는 다시 보이게 설정
               if (childGroupConnectorIds.has(node.id)) {
                 return {
                   ...node,
-                  data: {
-                    ...node.data,
-                    hidden: false,
-                    isConfirmed: node.data?.isConfirmed || false
-                  }
+                  data: { ...node.data, hidden: false, isConfirmed: node.data?.isConfirmed || false }
                 }
               }
 
-              // editableConnectorIds에 포함된 커넥터만 편집 모드로 전환 (다른 그룹 커넥터는 영향받지 않음)
+              // 현재 편집 중인 그룹 커넥터는 숨김 (라벨 박스를 보여주기 위함)
               if (editableConnectorIds.has(node.id) && typeof node.data?.isLastNode === 'undefined') {
                 return {
                   ...node,
-                  data: {
-                    ...node.data,
-                    hidden: true,
-                    isConfirmed: node.data?.isConfirmed || false
-                  }
+                  data: { ...node.data, hidden: true, isConfirmed: node.data?.isConfirmed || false }
                 }
               }
-              // editableConnectorIds에 포함되지 않은 확정된 커넥터는 그대로 유지 (편집 모드로 전환하지 않음)
+              // 그 외 확정된 커넥터는 유지
               if (node.data?.isConfirmed === true && !editableConnectorIds.has(node.id)) {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                  }
-                }
+                return { ...node, data: { ...node.data } }
               }
             }
             return node
@@ -287,6 +272,7 @@ export const useNodeHandlers = ({
 
           setIsEdgeConfirmed(false)
 
+          // 6. 설정 패널 데이터 로드
           const editedEdge = EditorUtils.findEdge(eds, id)
           if (editedEdge && editedEdge.data?.savedSettings) {
             const { addedPartsIds, ...settingsData } = editedEdge.data.savedSettings
@@ -298,6 +284,7 @@ export const useNodeHandlers = ({
               )
               setAddedParts(savedAddedParts)
             } else {
+              // addedPartsIds가 없는 경우 Source/Target으로 설정
               const addedParts = []
               const sourceNode = updatedNodes.find(n => n && n.id === editedEdge.source)
               const targetNode = updatedNodes.find(n => n && n.id === editedEdge.target)
@@ -317,6 +304,7 @@ export const useNodeHandlers = ({
             setShowSettingsPanel(true)
           }
 
+          // 7. Edge 상태 업데이트 (isConfirmed: false)
           setTimeout(() => {
             setEdges((currentEdges) => {
               return currentEdges.map(edge => {
@@ -341,6 +329,9 @@ export const useNodeHandlers = ({
         return eds
       }
 
+      // ---------------------------------------------------------
+      // Case B: 단일 노드 편집
+      // ---------------------------------------------------------
       setNodes((nds) => {
         const startNode = EditorUtils.findNode(nds, id)
         if (!startNode || startNode.type !== 'partNode') {
@@ -348,29 +339,25 @@ export const useNodeHandlers = ({
         }
 
         const updatedNodes = nds.map(node => {
+          // 해당 노드 편집 모드
           if (node.id === id) {
             return {
               ...node,
               draggable: true,
-              data: {
-                ...node.data,
-                isConfirmed: false
-              }
+              data: { ...node.data, isConfirmed: false }
             }
           }
+          // 해당 노드의 단일 커넥터 숨김
           if (node.type === 'groupConnector' && node.data?.nodeId === id) {
             return {
               ...node,
-              data: {
-                ...node.data,
-                hidden: true,
-                isConfirmed: node.data?.isConfirmed || false
-              }
+              data: { ...node.data, hidden: true, isConfirmed: node.data?.isConfirmed || false }
             }
           }
           return node
         })
 
+        // Edge 라벨 및 커넥터 업데이트 트리거
         setTimeout(() => {
           setEdges((currentEdges) => {
             setNodes((currentNodes) => {
@@ -391,6 +378,7 @@ export const useNodeHandlers = ({
                 singleNodeGroupId
               )
 
+              // 단일 노드 커넥터 숨김 처리 (편집 중이므로)
               const connectorId = EditorUtils.createSingleNodeConnectorId(id)
               const existingConnector = EditorUtils.findConnector(currentNodes, connectorId)
 
@@ -423,16 +411,20 @@ export const useNodeHandlers = ({
     })
   }, [setNodes, setEdges, setIsEdgeConfirmed, setShowSettingsPanel, setSelectedNodeId, setAddedParts, setSettingsData, rfInstance, handleEdgeDelete, handleNodeSettingsClick, updateEdgeLabelsCallback])
 
-  // handleNodeEdit를 ref에 저장
+  // handleNodeEdit를 ref에 저장 (순환 참조 방지)
   handleNodeEditRef.current = handleNodeEdit
 
-  // 노드 확정 핸들러
+  // =========================================================================================
+  // 4. 확정 핸들러 (Confirm)
+  // =========================================================================================
+
   const handleNodeConfirm = useCallback((id) => {
     if (confirmingRef.current.has(id)) {
       return
     }
     confirmingRef.current.add(id)
 
+    // 1. 설정값 유효성 검사
     const currentSettings = settingsDataRef.current
     if (!currentSettings.step) {
       confirmingRef.current.delete(id)
@@ -451,6 +443,9 @@ export const useNodeHandlers = ({
     setEdges((eds) => {
       const targetEdge = EditorUtils.findEdge(eds, id)
 
+      // ---------------------------------------------------------
+      // Case A: Edge(그룹) 확정
+      // ---------------------------------------------------------
       if (targetEdge) {
         if (!targetEdge.data?.stepValue) {
           confirmingRef.current.delete(id)
@@ -465,6 +460,7 @@ export const useNodeHandlers = ({
           return eds
         }
 
+        // 데이터 준비
         const currentAddedParts = addedPartsRef.current
         const savedAddedPartsIds = targetEdge.data?.savedSettings?.addedPartsIds
         const addedPartsIds = savedAddedPartsIds && Array.isArray(savedAddedPartsIds) && savedAddedPartsIds.length > 0
@@ -475,6 +471,7 @@ export const useNodeHandlers = ({
         const tempGroupId = EditorUtils.createGroupId(tempNodeIds)
         const tempConnectorId = EditorUtils.createGroupConnectorId(tempGroupId)
 
+        // Edge 상태 업데이트 (확정)
         const updatedEdges = eds.map(edge => {
           if (edge.id === id) {
             return {
@@ -498,6 +495,7 @@ export const useNodeHandlers = ({
         setIsEdgeConfirmed(true)
 
         setNodes((nds) => {
+          // 관련 노드 식별
           const allPartNodeIds = new Set()
           const groupConnectorIds = new Set()
           
@@ -526,17 +524,12 @@ export const useNodeHandlers = ({
 
           const allConnectedNodeIds = new Set(Array.from(allPartNodeIds))
 
-          // allConnectedNodeIds에 포함된 노드를 감싸고 있는 '단일 노드 커넥터'를 찾아서
-          // 숨김 처리를 위한 리스트(partsToCheckForHiding)에 추가합니다.
-          
-          const partsToCheckForHiding = [...addedPartsIds]; // 기존 ID 복사
+          // 숨김 처리할 하위 커넥터 식별 (단일 노드 커넥터 포함)
+          const partsToCheckForHiding = [...addedPartsIds];
 
           nds.forEach(node => {
-            // 그룹 커넥터이면서 단일 노드 ID(data.nodeId)를 가지고 있는 경우
             if (node.type === 'groupConnector' && node.data?.nodeId) {
-              // 그 내부 노드가 이번 확정 대상(allConnectedNodeIds)에 포함되어 있다면
               if (allConnectedNodeIds.has(node.data.nodeId)) {
-                // 이미 리스트에 없다면 추가 (이것이 숨겨야 할 단일 노드 커넥터임)
                 if (!partsToCheckForHiding.includes(node.id)) {
                   partsToCheckForHiding.push(node.id);
                 }
@@ -551,22 +544,15 @@ export const useNodeHandlers = ({
 
           const connectedEdges = eds.filter(edge => {
             if (edge.id === id) return true
-            
-            if (allConnectedNodeIds.has(edge.source) || allConnectedNodeIds.has(edge.target)) {
-              return true
-            }
-            
+            if (allConnectedNodeIds.has(edge.source) || allConnectedNodeIds.has(edge.target)) return true
             if (groupConnectorIds.size > 0) {
               for (const connectorId of groupConnectorIds) {
                 const connector = EditorUtils.findNode(nds, connectorId)
                 if (connector && connector.data?.groupEdges && Array.isArray(connector.data.groupEdges)) {
-                  if (connector.data.groupEdges.includes(edge.id)) {
-                    return true
-                  }
+                  if (connector.data.groupEdges.includes(edge.id)) return true
                 }
               }
             }
-            
             return false
           })
 
@@ -576,10 +562,12 @@ export const useNodeHandlers = ({
           const groupId = savedGroupId || EditorUtils.createGroupId(allConnectedNodeIds)
           const connectorId = savedConnectorId || EditorUtils.createGroupConnectorId(groupId)
 
+          // 2. Edge 라벨 및 그룹 커넥터 업데이트
           const { updatedEdges: finalEdges, groupConnectorNodes } = updateEdgeLabelsCallback(updatedEdges, nds, rfInstance, handleEdgeDelete, handleNodeSettingsClick, handleNodeConfirmRef.current, null, groupId)
 
           setEdges(finalEdges)
 
+          // 3. 파츠 노드 확정 상태로 업데이트
           const updatedPartNodes = nds.map(node => {
             if (allConnectedNodeIds.has(node.id) && node.type === 'partNode') {
               return {
@@ -603,28 +591,24 @@ export const useNodeHandlers = ({
 
           const filteredNodes = updatedPartNodes.filter(n => n && n.type !== 'groupConnector')
           const existingConnectorMap = new Map(
-            nds
-              .filter(n => n && n.type === 'groupConnector')
-              .map(n => [n.id, n])
+            nds.filter(n => n && n.type === 'groupConnector').map(n => [n.id, n])
           )
 
           const updatedConnectorMap = new Map()
 
+          // 4. 그룹 커넥터 생성 및 업데이트
           if (groupConnectorNodes && Array.isArray(groupConnectorNodes)) {
             groupConnectorNodes.forEach(newConnector => {
               const shouldMatch = isMatchingConnector(newConnector, groupId, connectorId, connectedEdges)
 
               if (shouldMatch) {
-                // DOM 렌더링 완료 후 커넥터 위치 계산
+                // DOM 렌더링 후 커넥터 위치 계산
                 calculateConnectorPositionCallback(connectedEdges, nds, rfInstance).then(connectorPosition => {
                   if (connectorPosition) {
                     setNodes((currentNodes) => {
                       return currentNodes.map(node => {
                         if (node.id === newConnector.id) {
-                          return {
-                            ...node,
-                            position: connectorPosition
-                          }
+                          return { ...node, position: connectorPosition }
                         }
                         return node
                       })
@@ -634,7 +618,7 @@ export const useNodeHandlers = ({
 
                 const updatedConnectorData = {
                   ...newConnector,
-                  position: newConnector.position, // 초기 위치, DOM 렌더링 후 업데이트됨
+                  position: newConnector.position,
                   data: {
                     ...newConnector.data,
                     isConfirmed: true,
@@ -642,31 +626,22 @@ export const useNodeHandlers = ({
                     groupId: groupId,
                     groupEdges: connectedEdges.map(e => e.id),
                     nodeIds: Array.from(allConnectedNodeIds),
-                    savedSettings: {
-                      ...currentSettings,
-                      addedPartsIds: addedPartsIds
-                    },
+                    savedSettings: { ...currentSettings, addedPartsIds: addedPartsIds },
                     hidden: false,
                     isGroupToGroup: false
                   }
                 }
-
                 updatedConnectorMap.set(newConnector.id, updatedConnectorData)
               } else {
                 const connectorToAdd = newConnector.data?.isConfirmed === true
-                  ? {
-                    ...newConnector,
-                    data: {
-                      ...newConnector.data,
-                      isGroupToGroup: false
-                    }
-                  }
+                  ? { ...newConnector, data: { ...newConnector.data, isGroupToGroup: false } }
                   : newConnector
                 updatedConnectorMap.set(newConnector.id, connectorToAdd)
               }
             })
           }
 
+          // 5. 기존 그룹 커넥터가 맵에 없으면 추가 (재활용)
           const existingGroupConnector = findGroupConnector(connectorId, groupId, connectedEdges, nds)
 
           if (existingGroupConnector && !updatedConnectorMap.has(existingGroupConnector.id)) {
@@ -675,16 +650,12 @@ export const useNodeHandlers = ({
             )
             const addedPartsIdsForExisting = groupPartNodesForExisting.map(n => n.id)
 
-            // DOM 렌더링 완료 후 커넥터 위치 계산
             calculateConnectorPositionCallback(connectedEdges, nds, rfInstance).then(newConnectorPosition => {
               if (newConnectorPosition) {
                 setNodes((currentNodes) => {
                   return currentNodes.map(node => {
                     if (node.id === existingGroupConnector.id) {
-                      return {
-                        ...node,
-                        position: newConnectorPosition
-                      }
+                      return { ...node, position: newConnectorPosition }
                     }
                     return node
                   })
@@ -694,7 +665,7 @@ export const useNodeHandlers = ({
 
             const updatedConnector = {
               ...existingGroupConnector,
-              position: existingGroupConnector.position, // 초기 위치, DOM 렌더링 후 업데이트됨
+              position: existingGroupConnector.position,
               data: {
                 ...existingGroupConnector.data,
                 isConfirmed: true,
@@ -702,12 +673,7 @@ export const useNodeHandlers = ({
                 groupId: groupId,
                 groupEdges: connectedEdges.map(e => e.id),
                 nodeIds: Array.from(allConnectedNodeIds),
-                savedSettings: {
-                  ...currentSettings,
-                  addedPartsIds: addedPartsIdsForExisting,
-                  groupId: groupId,
-                  connectorId: existingGroupConnector.id
-                },
+                savedSettings: { ...currentSettings, addedPartsIds: addedPartsIdsForExisting, groupId: groupId, connectorId: existingGroupConnector.id },
                 hidden: false,
                 isGroupToGroup: false
               }
@@ -715,18 +681,15 @@ export const useNodeHandlers = ({
 
             updatedConnectorMap.set(existingGroupConnector.id, updatedConnector)
           } else if (!existingGroupConnector && !updatedConnectorMap.has(connectorId)) {
+            // 6. 새로운 커넥터 생성 (Fallback)
             let position = null
             
-            // DOM 렌더링 완료 후 커넥터 위치 계산
             calculateConnectorPositionCallback(connectedEdges, nds, rfInstance).then(calculatedPosition => {
               if (calculatedPosition) {
                 setNodes((currentNodes) => {
                   return currentNodes.map(node => {
                     if (node.id === connectorId) {
-                      return {
-                        ...node,
-                        position: calculatedPosition
-                      }
+                      return { ...node, position: calculatedPosition }
                     }
                     return node
                   })
@@ -735,18 +698,14 @@ export const useNodeHandlers = ({
             })
 
             if (!position) {
-              const groupPartNodes = nds.filter(n =>
-                n && allConnectedNodeIds.has(n.id) && n.type === 'partNode'
-              )
+              const groupPartNodes = nds.filter(n => n && allConnectedNodeIds.has(n.id) && n.type === 'partNode')
               const firstNode = groupPartNodes[0]
               const labelX = firstNode ? firstNode.position.x + 90 : 0
               const labelY = firstNode ? firstNode.position.y + 200 + 60 : 0
               position = { x: labelX, y: labelY }
             }
 
-            const groupPartNodes = nds.filter(n =>
-              n && allConnectedNodeIds.has(n.id) && n.type === 'partNode'
-            )
+            const groupPartNodes = nds.filter(n => n && allConnectedNodeIds.has(n.id) && n.type === 'partNode')
             const addedPartsIdsForNew = groupPartNodes.map(n => n.id)
 
             const newConnector = {
@@ -759,12 +718,7 @@ export const useNodeHandlers = ({
                 groupId: groupId,
                 groupEdges: connectedEdges.map(e => e.id),
                 nodeIds: Array.from(allConnectedNodeIds),
-                savedSettings: {
-                  ...currentSettings,
-                  addedPartsIds: addedPartsIdsForNew,
-                  groupId: groupId,
-                  connectorId: connectorId
-                },
+                savedSettings: { ...currentSettings, addedPartsIds: addedPartsIdsForNew, groupId: groupId, connectorId: connectorId },
                 hidden: false,
                 isGroupToGroup: false
               },
@@ -774,18 +728,15 @@ export const useNodeHandlers = ({
             updatedConnectorMap.set(connectorId, newConnector)
           }
 
+          // 7. 하위 그룹 커넥터 숨김 처리 식별
           const childGroupConnectorIds = hideChildGroupConnectors(partsToCheckForHiding, nds, existingConnectorMap, groupConnectorNodes, updatedConnectorMap)
 
-          // -------------------------------------------------------
-          // 1. 신규 생성된 그룹노드
-          // -------------------------------------------------------
+          // 8. 마지막 노드(End Node) 찾기 (숨김 예외 대상)
           const groupSourceNodeIds = new Set(connectedEdges.map(e => e.source));
-          // 출발점이 아닌 노드가 마지막 노드
           const lastPartNodeId = Array.from(allConnectedNodeIds).find(id => !groupSourceNodeIds.has(id));
 
           let lastNodeConnectorId = null;
           if (lastPartNodeId) {
-            // 마지막 노드를 감싸는 커넥터 찾기
             const lastConnector = nds.findLast(n => 
               n.type === 'groupConnector' && 
               typeof n.data?.isLastNode === "undefined" &&
@@ -793,37 +744,23 @@ export const useNodeHandlers = ({
             );
             if (lastConnector) lastNodeConnectorId = lastConnector.id;
           }
-          console.log('1. lastNodeConnectorId', lastNodeConnectorId)
 
-          // -------------------------------------------------------
-          // 2. 숨김 대상 목록 통합
-          // -------------------------------------------------------
           const allIdsToHide = new Set([...childGroupConnectorIds]);
           partsToCheckForHiding.forEach(id => allIdsToHide.add(id));
-          console.log('2. allIdsToHide', allIdsToHide)
 
-          // -------------------------------------------------------
-          // 3. 기존 커넥터 유지 (Merge)
-          // -------------------------------------------------------
+          // 9. 기존 커넥터 유지 및 병합
           existingConnectorMap.forEach((existingConnector, connectorId) => {
-            // 업데이트된 맵에 없다면, 기존 거라도 가져옴 (보존)
             if (!updatedConnectorMap.has(connectorId)) {
                if ((existingConnector.data?.isConfirmed === true || existingConnector.data?.isGroupBox === true) && typeof existingConnector.data?.isLastNode === "undefined" && !existingConnector.data?.hidden) {
                   updatedConnectorMap.set(connectorId, existingConnector);
                }
             }
           });
-          console.log('3. updatedConnectorMap', updatedConnectorMap)
 
-          // -------------------------------------------------------
-          // 4. [핵심 수정] 강제 숨김 처리 (Overwrite)
-          // -------------------------------------------------------
-          // updatedConnectorMap에 있는 것이라도, 숨김 명단에 있으면 강제로 숨김
+          // 10. [핵심] 강제 숨김 처리 (Overwrite)
           allIdsToHide.forEach(idToHide => {
-            // 마지막 노드의 커넥터라면 숨기지 않음 (예외)
             if (idToHide === lastNodeConnectorId) return;
 
-            // 맵에 존재하면 hidden 속성 덮어쓰기
             if (updatedConnectorMap.has(idToHide)) {
               const targetConnector = updatedConnectorMap.get(idToHide);
               updatedConnectorMap.set(idToHide, {
@@ -835,13 +772,11 @@ export const useNodeHandlers = ({
               });
             }
           });
-          console.log('5. [Final]updatedConnectorMap', updatedConnectorMap)
 
           const finalConnectors = Array.from(updatedConnectorMap.values())
 
           confirmingRef.current.delete(id)
           
-          // 확정 완료 시 설정패널 닫기
           setTimeout(() => {
             setShowSettingsPanel(false)
             setSelectedNodeId(null)
@@ -853,6 +788,9 @@ export const useNodeHandlers = ({
         return updatedEdges
       }
 
+      // ---------------------------------------------------------
+      // Case B: 단일 노드 확정
+      // ---------------------------------------------------------
       setNodes((nds) => {
         const startNode = EditorUtils.findNode(nds, id)
         if (!startNode || startNode.type !== 'partNode') {
@@ -912,8 +850,6 @@ export const useNodeHandlers = ({
         const confirmedNode = updatedNodes.find(n => n.id === id)
         if (confirmedNode) {
           confirmingRef.current.delete(id)
-          
-          // 확정 완료 시 설정패널 닫기
           setTimeout(() => {
             setShowSettingsPanel(false)
             setSelectedNodeId(null)
@@ -927,6 +863,7 @@ export const useNodeHandlers = ({
       return eds
     })
 
+    // 단일 노드 커넥터 업데이트 및 최종 정리 로직
     setTimeout(() => {
       setEdges((currentEdges) => {
         setNodes((currentNodes) => {
@@ -966,12 +903,15 @@ export const useNodeHandlers = ({
         return currentEdges
       })
     }, 100)
-  }, [rfInstance, setNodes, setEdges, handleEdgeDelete, handleNodeSettingsClick, setShowSettingsPanel, setFocusField, settingsDataRef, setAddedParts, calculateConnectorPositionCallback, addedPartsRef, confirmingRef, setIsEdgeConfirmed, updateEdgeLabelsCallback])
+  }, [rfInstance, setNodes, setEdges, handleEdgeDelete, handleNodeSettingsClick, setShowSettingsPanel, setFocusField, settingsDataRef, setAddedParts, calculateConnectorPositionCallback, addedPartsRef, confirmingRef, setIsEdgeConfirmed, updateEdgeLabelsCallback, handleNodeEdit])
 
   // handleNodeConfirm를 ref에 저장
   handleNodeConfirmRef.current = handleNodeConfirm
 
-  // 노드 드래그 핸들러들
+  // =========================================================================================
+  // 4. 드래그 핸들러 (그룹 이동 지원)
+  // =========================================================================================
+
   const onNodeDragStart = useCallback((event, node) => {
     if (node.type === 'partNode' && node.data?.isConfirmed === true) {
       draggingGroupRef.current = null

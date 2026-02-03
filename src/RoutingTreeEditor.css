@@ -732,9 +732,14 @@
 
 /* 확정된 노드의 연결 포인트 숨김 */
 /* 확정 상태에서는 개별 노드의 Handle 숨김 */
-.custom-node-wrapper[data-confirmed="true"] .react-flow__handle {
+.custom-node-wrapper[data-confirmed="true"] .react-flow__handle{
   display: none;
 }
+
+/* 숨겨야 할 커넥터의 핸들(점) 강제 숨김 */
+/* .react-flow__node.hide-connector-handle .react-flow__handle {
+  display: none;
+} */
 
 .custom-node-wrapper[data-text-node="true"] .node-title-input{
   width: 300px;

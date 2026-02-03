@@ -1,5 +1,5 @@
 // 노드 크기 상수
-export const NODE_WIDTH = 200
+export const NODE_WIDTH = 300
 export const NODE_HEIGHT = 220
 
 // 라벨박스 크기 상수

@@ -7,11 +7,11 @@ export const getConnectionLineTypeForTarget = (sourcePosition, targetPosition) =
   if (sourcePosition === 'bottom' && targetPosition === 'top') {
     return 'smoothstep' // 아래에서 위로: smoothstep이 자연스러움
   } else if (sourcePosition === 'bottom' && targetPosition === 'bottom') {
-    return 'bezier' // 아래에서 아래로: bezier가 자연스러움
+    return 'default' // 아래에서 아래로: bezier가 자연스러움
   } else if (sourcePosition === 'bottom' && targetPosition === 'left') {
-    return 'smoothstep'
+    return 'step'
   } else if (sourcePosition === 'bottom' && targetPosition === 'right') {
-    return 'smoothstep'
+    return 'step'
   }
   // 기본값
   return 'smoothstep'
@@ -86,7 +86,7 @@ export const correctConnectionForCase5 = (connection, nodes) => {
 }
 
 // 마우스 위치에서 가장 가까운 handle 찾기 (자석 기능용)
-export const findNearestHandle = (mouseX, mouseY, currentNodes, rfInst, sourceNodeId = null, snapRadius = 100) => {
+export const findNearestHandle = (mouseX, mouseY, currentNodes, rfInst, sourceNodeId = null, snapRadius = 500) => {
   if (!rfInst) return null
 
   let nearestHandle = null
@@ -103,12 +103,24 @@ export const findNearestHandle = (mouseX, mouseY, currentNodes, rfInst, sourceNo
       const nodeX = node.position.x
       const nodeY = node.position.y
 
+      const actualWidth = NODE_WIDTH
+      const actualHeight = NODE_HEIGHT
+
       // 각 방향의 handle 위치 계산
       const handles = [
-        { position: 'top', x: nodeX + NODE_WIDTH / 2, y: nodeY, handleId: 'top' },
-        { position: 'bottom', x: nodeX + NODE_WIDTH / 2, y: nodeY + NODE_HEIGHT, handleId: 'bottom' },
-        { position: 'left', x: nodeX, y: nodeY + NODE_HEIGHT / 2, handleId: 'left' },
-        { position: 'right', x: nodeX + NODE_WIDTH, y: nodeY + NODE_HEIGHT / 2, handleId: 'right' },
+        // Top (Target)
+        { position: 'top', x: nodeX + actualWidth / 2, y: nodeY, handleId: 'top', type: 'target' },
+        
+        // Left (Target & Source)
+        { position: 'left', x: nodeX, y: nodeY + actualHeight / 2, handleId: 'left', type: 'target' },
+        { position: 'left', x: nodeX, y: nodeY + actualHeight / 2, handleId: 'left-source', type: 'source' },
+
+        // Bottom (Source)
+        { position: 'bottom', x: nodeX + actualWidth / 2, y: nodeY + actualHeight, handleId: 'bottom', type: 'source' },
+
+        // Right (Source & Target)
+        { position: 'right', x: nodeX + actualWidth, y: nodeY + actualHeight / 2, handleId: 'right', type: 'source' },
+        { position: 'right', x: nodeX + actualWidth, y: nodeY + actualHeight / 2, handleId: 'right-target', type: 'target' },
       ]
 
       handles.forEach(handle => {
@@ -116,12 +128,15 @@ export const findNearestHandle = (mouseX, mouseY, currentNodes, rfInst, sourceNo
           Math.pow(handle.x - mouseX, 2) + Math.pow(handle.y - mouseY, 2)
         )
         if (distance < minDistance && distance < snapRadius) {
-          minDistance = distance
+          minDistance = 500
           nearestHandle = {
-            ...handle,
+            position: handle.position,
+            x: handle.x,
+            y: handle.y,
             nodeId: node.id,
             nodeType: 'partNode',
-            handleType: 'target'
+            handleId: handle.handleId,
+            handleType: handle.type
           }
         }
       })
