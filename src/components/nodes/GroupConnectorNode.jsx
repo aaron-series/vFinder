@@ -21,7 +21,7 @@ const GroupConnectorNode = ({ data, id }) => {
 
   // Handle 표시 조건: 확정된 경우 또는 그룹과 그룹 연결로 생성된 경우 표시
   const shouldShowHandles = (isConfirmed || isGroupToGroup) && !(isHidden && !isGroupToGroup)
-  // console.log('★[shouldShowHandles]: ', shouldShowHandles, 'isConfirmed:', isConfirmed, 'isGroupBox:', isGroupBox, 'isGroupToGroup:', isGroupToGroup, 'isHidden:', isHidden)
+  console.log('★[shouldShowHandles]: ', shouldShowHandles, 'isConfirmed:', isConfirmed, 'isGroupBox:', isGroupBox, 'isGroupToGroup:', isGroupToGroup, 'isHidden:', isHidden)
 
   // 단일 노드 커넥터인지 확인 (isGroupBox가 false이고 nodeId가 있으면 단일 노드 커넥터)
   const isSingleNodeConnector = !isGroupBox && data?.nodeId

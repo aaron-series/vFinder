@@ -130,7 +130,6 @@ const calculateConnectorPositionSync = (connectedEdges, nodes, rfInst = null) =>
     n.data?.groupEdges &&
     typeof n.data?.isLastNode === 'undefined'
   )
-  console.log('groupNode', groupNode)
 
   let labelBox = null
 
@@ -147,8 +146,6 @@ const calculateConnectorPositionSync = (connectedEdges, nodes, rfInst = null) =>
     const latestEdgeId = connectedEdges[connectedEdges.length - 1].id
     labelBox = document.querySelector(`.edge-label-box[data-edge-id="${latestEdgeId}"]`)
   }
-
-  console.log('labelBox', labelBox)
 
   // 4. 찾은 라벨 박스의 '정중앙' 좌표 계산
   if (labelBox && rfInst) {

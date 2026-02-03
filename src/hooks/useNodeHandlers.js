@@ -526,6 +526,24 @@ export const useNodeHandlers = ({
 
           const allConnectedNodeIds = new Set(Array.from(allPartNodeIds))
 
+          // allConnectedNodeIds에 포함된 노드를 감싸고 있는 '단일 노드 커넥터'를 찾아서
+          // 숨김 처리를 위한 리스트(partsToCheckForHiding)에 추가합니다.
+          
+          const partsToCheckForHiding = [...addedPartsIds]; // 기존 ID 복사
+
+          nds.forEach(node => {
+            // 그룹 커넥터이면서 단일 노드 ID(data.nodeId)를 가지고 있는 경우
+            if (node.type === 'groupConnector' && node.data?.nodeId) {
+              // 그 내부 노드가 이번 확정 대상(allConnectedNodeIds)에 포함되어 있다면
+              if (allConnectedNodeIds.has(node.data.nodeId)) {
+                // 이미 리스트에 없다면 추가 (이것이 숨겨야 할 단일 노드 커넥터임)
+                if (!partsToCheckForHiding.includes(node.id)) {
+                  partsToCheckForHiding.push(node.id);
+                }
+              }
+            }
+          });
+
           if (allConnectedNodeIds.size === 0) {
             confirmingRef.current.delete(id)
             return nds
@@ -566,7 +584,7 @@ export const useNodeHandlers = ({
             if (allConnectedNodeIds.has(node.id) && node.type === 'partNode') {
               return {
                 ...node,
-                draggable: true,
+                draggable: false,
                 data: {
                   ...node.data,
                   isConfirmed: true,
@@ -756,19 +774,68 @@ export const useNodeHandlers = ({
             updatedConnectorMap.set(connectorId, newConnector)
           }
 
-          const childGroupConnectorIds = hideChildGroupConnectors(addedPartsIds, nds, existingConnectorMap, groupConnectorNodes, updatedConnectorMap)
+          const childGroupConnectorIds = hideChildGroupConnectors(partsToCheckForHiding, nds, existingConnectorMap, groupConnectorNodes, updatedConnectorMap)
 
+          // -------------------------------------------------------
+          // 1. 신규 생성된 그룹노드
+          // -------------------------------------------------------
+          const groupSourceNodeIds = new Set(connectedEdges.map(e => e.source));
+          // 출발점이 아닌 노드가 마지막 노드
+          const lastPartNodeId = Array.from(allConnectedNodeIds).find(id => !groupSourceNodeIds.has(id));
+
+          let lastNodeConnectorId = null;
+          if (lastPartNodeId) {
+            // 마지막 노드를 감싸는 커넥터 찾기
+            const lastConnector = nds.findLast(n => 
+              n.type === 'groupConnector' && 
+              typeof n.data?.isLastNode === "undefined" &&
+              n.data?.isGroupBox === true
+            );
+            if (lastConnector) lastNodeConnectorId = lastConnector.id;
+          }
+          console.log('1. lastNodeConnectorId', lastNodeConnectorId)
+
+          // -------------------------------------------------------
+          // 2. 숨김 대상 목록 통합
+          // -------------------------------------------------------
+          const allIdsToHide = new Set([...childGroupConnectorIds]);
+          partsToCheckForHiding.forEach(id => allIdsToHide.add(id));
+          console.log('2. allIdsToHide', allIdsToHide)
+
+          // -------------------------------------------------------
+          // 3. 기존 커넥터 유지 (Merge)
+          // -------------------------------------------------------
           existingConnectorMap.forEach((existingConnector, connectorId) => {
+            // 업데이트된 맵에 없다면, 기존 거라도 가져옴 (보존)
             if (!updatedConnectorMap.has(connectorId)) {
-              if (!childGroupConnectorIds.has(connectorId)) {
-                if (existingConnector.data?.isConfirmed === true && !existingConnector.data?.hidden) {
-                  updatedConnectorMap.set(connectorId, existingConnector)
-                } else if (existingConnector.data?.isGroupBox === true && !existingConnector.data?.hidden) {
-                  updatedConnectorMap.set(connectorId, existingConnector)
-                }
-              }
+               if ((existingConnector.data?.isConfirmed === true || existingConnector.data?.isGroupBox === true) && typeof existingConnector.data?.isLastNode === "undefined" && !existingConnector.data?.hidden) {
+                  updatedConnectorMap.set(connectorId, existingConnector);
+               }
             }
-          })
+          });
+          console.log('3. updatedConnectorMap', updatedConnectorMap)
+
+          // -------------------------------------------------------
+          // 4. [핵심 수정] 강제 숨김 처리 (Overwrite)
+          // -------------------------------------------------------
+          // updatedConnectorMap에 있는 것이라도, 숨김 명단에 있으면 강제로 숨김
+          allIdsToHide.forEach(idToHide => {
+            // 마지막 노드의 커넥터라면 숨기지 않음 (예외)
+            if (idToHide === lastNodeConnectorId) return;
+
+            // 맵에 존재하면 hidden 속성 덮어쓰기
+            if (updatedConnectorMap.has(idToHide)) {
+              const targetConnector = updatedConnectorMap.get(idToHide);
+              updatedConnectorMap.set(idToHide, {
+                ...targetConnector,
+                data: {
+                  ...targetConnector.data,
+                  hidden: true // 강제 숨김
+                }
+              });
+            }
+          });
+          console.log('5. [Final]updatedConnectorMap', updatedConnectorMap)
 
           const finalConnectors = Array.from(updatedConnectorMap.values())
 
@@ -825,7 +892,7 @@ export const useNodeHandlers = ({
           if (node.id === id) {
             return {
               ...node,
-              draggable: true,
+              draggable: false,
               data: {
                 ...node.data,
                 isConfirmed: true,
