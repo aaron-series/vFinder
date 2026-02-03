@@ -8,8 +8,13 @@ export const LABEL_BOX_HALF_WIDTH = LABEL_BOX_WIDTH / 2 // 170px
 export const LABEL_BOX_HEIGHT = 250
 export const LABEL_BOX_HALF_HEIGHT = LABEL_BOX_HEIGHT / 2 // 45px
 
+// 캔버스 ZOOM 상수
+export const ZOOM = 0.6
+export const ZOOM_MIN = 0.1
+export const ZOOM_MAX = 2
+
 // 라벨박스 오프셋
-export const LABEL_BOX_OFFSET_Y = 60 // CSS: top: calc(100% + 60px)
+export const LABEL_BOX_OFFSET_Y = 80 // CSS: top: calc(100% + 60px)
 
 // Category 코드와 이름 매핑
 export const CATEGORY_MAP = {

@@ -80,7 +80,7 @@ export const useNodeHandlers = ({
             // groupEdges에 포함된 경우 (fallback)
             return false
           })
-          
+
           // 관련 edge가 선택되어 있었다면 패널 닫기
           if (relatedEdges.length > 0) {
             setSelectedNodeId((currentSelectedId) => {
@@ -121,6 +121,11 @@ export const useNodeHandlers = ({
   }, [setNodes, setEdges, setShowSettingsPanel, setSelectedNodeId])
 
   // =========================================================================================
+  // 5. 추가 핸들러 (Add Mode 진입)
+  // =========================================================================================
+
+
+  // =========================================================================================
   // 3. 편집 핸들러 (Edit Mode 진입)
   // =========================================================================================
 
@@ -156,7 +161,7 @@ export const useNodeHandlers = ({
           const targetConnectorId = targetEdge.data?.savedSettings?.connectorId
           let targetGroupConnector = null
           let finalTargetGroupId = targetGroupId
-          
+
           // ID로 찾기
           if (targetConnectorId || targetGroupId) {
             targetGroupConnector = nds.find(n =>
@@ -224,13 +229,19 @@ export const useNodeHandlers = ({
             })
           }
 
-          // 4. 하위 그룹 커넥터 식별 (다시 표시해야 함)
+          // 4. 하위 그룹 커넥터 식별 및 [추가] 하위 그룹 엣지 수집 (잠금 해제용)
           const childGroupConnectorIds = new Set()
+          const childGroupEdgeIds = new Set() // [추가] 하위 그룹의 엣지 ID들을 담을 Set
+
           if (targetEdge.data?.savedSettings?.addedPartsIds && Array.isArray(targetEdge.data.savedSettings.addedPartsIds)) {
             targetEdge.data.savedSettings.addedPartsIds.forEach(nodeId => {
               const node = EditorUtils.findNode(nds, nodeId)
               if (node && node.type === 'groupConnector') {
                 childGroupConnectorIds.add(nodeId)
+                // [추가] 하위 그룹 커넥터가 가진 엣지들도 수집
+                if (node.data?.groupEdges) {
+                  node.data.groupEdges.forEach(eid => childGroupEdgeIds.add(eid))
+                }
               }
             })
           }
@@ -242,7 +253,12 @@ export const useNodeHandlers = ({
               return {
                 ...node,
                 draggable: true,
-                data: { ...node.data, isConfirmed: false }
+                data: {
+                  ...node.data,
+                  isConfirmed: false,
+                  // [수정] 편집 모드로 돌아오면 잠금 해제 (단, parentId는 유지하여 그룹 소속임은 표시)
+                  isLockedByParent: false
+                }
               }
             }
             // 그룹 커넥터 처리
@@ -251,7 +267,12 @@ export const useNodeHandlers = ({
               if (childGroupConnectorIds.has(node.id)) {
                 return {
                   ...node,
-                  data: { ...node.data, hidden: false, isConfirmed: node.data?.isConfirmed || false }
+                  data: {
+                    ...node.data,
+                    hidden: false,
+                    isConfirmed: node.data?.isConfirmed || false,
+                    isLockedByParent: false // [수정] 하위 그룹 커넥터 잠금 해제
+                  }
                 }
               }
 
@@ -316,6 +337,13 @@ export const useNodeHandlers = ({
                       isConfirmed: false,
                       savedSettings: edge.data?.savedSettings
                     }
+                  }
+                }
+                // [추가] 하위 그룹에 속한 엣지들도 잠금 해제
+                if (childGroupEdgeIds.has(edge.id)) {
+                  return {
+                    ...edge,
+                    data: { ...edge.data, isLockedByParent: false }
                   }
                 }
                 return edge
@@ -414,6 +442,7 @@ export const useNodeHandlers = ({
   // handleNodeEdit를 ref에 저장 (순환 참조 방지)
   handleNodeEditRef.current = handleNodeEdit
 
+
   // =========================================================================================
   // 4. 확정 핸들러 (Confirm)
   // =========================================================================================
@@ -498,7 +527,7 @@ export const useNodeHandlers = ({
           // 관련 노드 식별
           const allPartNodeIds = new Set()
           const groupConnectorIds = new Set()
-          
+
           addedPartsIds.forEach(nodeId => {
             const node = EditorUtils.findNode(nds, nodeId)
             if (node && node.type === 'groupConnector' && node.data?.isGroupBox === true) {
@@ -683,7 +712,7 @@ export const useNodeHandlers = ({
           } else if (!existingGroupConnector && !updatedConnectorMap.has(connectorId)) {
             // 6. 새로운 커넥터 생성 (Fallback)
             let position = null
-            
+
             calculateConnectorPositionCallback(connectedEdges, nds, rfInstance).then(calculatedPosition => {
               if (calculatedPosition) {
                 setNodes((currentNodes) => {
@@ -737,8 +766,8 @@ export const useNodeHandlers = ({
 
           let lastNodeConnectorId = null;
           if (lastPartNodeId) {
-            const lastConnector = nds.findLast(n => 
-              n.type === 'groupConnector' && 
+            const lastConnector = nds.findLast(n =>
+              n.type === 'groupConnector' &&
               typeof n.data?.isLastNode === "undefined" &&
               n.data?.isGroupBox === true
             );
@@ -751,9 +780,9 @@ export const useNodeHandlers = ({
           // 9. 기존 커넥터 유지 및 병합
           existingConnectorMap.forEach((existingConnector, connectorId) => {
             if (!updatedConnectorMap.has(connectorId)) {
-               if ((existingConnector.data?.isConfirmed === true || existingConnector.data?.isGroupBox === true) && typeof existingConnector.data?.isLastNode === "undefined" && !existingConnector.data?.hidden) {
-                  updatedConnectorMap.set(connectorId, existingConnector);
-               }
+              if ((existingConnector.data?.isConfirmed === true || existingConnector.data?.isGroupBox === true) && typeof existingConnector.data?.isLastNode === "undefined" && !existingConnector.data?.hidden) {
+                updatedConnectorMap.set(connectorId, existingConnector);
+              }
             }
           });
 
@@ -776,7 +805,7 @@ export const useNodeHandlers = ({
           const finalConnectors = Array.from(updatedConnectorMap.values())
 
           confirmingRef.current.delete(id)
-          
+
           setTimeout(() => {
             setShowSettingsPanel(false)
             setSelectedNodeId(null)
@@ -922,9 +951,9 @@ export const useNodeHandlers = ({
       const groupNodeIds = node.data?.nodeIds || []
       const groupId = node.data?.groupId
       const isConfirmed = node.data?.isConfirmed === true
-      
+
       const groupNodeIdSet = new Set()
-      
+
       if (isConfirmed && groupNodeIds.length > 0) {
         groupNodeIds.forEach(id => {
           const targetNode = nodes.find(n => n && n.id === id)
@@ -939,7 +968,7 @@ export const useNodeHandlers = ({
             groupNodeIdSet.add(id)
           }
         })
-        
+
         if (node.data?.groupEdges && Array.isArray(node.data.groupEdges)) {
           node.data.groupEdges.forEach(edgeId => {
             const edge = edges.find(e => e && e.id === edgeId)
@@ -960,7 +989,7 @@ export const useNodeHandlers = ({
           })
         }
       }
-      
+
       draggingGroupRef.current = {
         connectorId: node.id,
         groupId: groupId,
@@ -979,23 +1008,19 @@ export const useNodeHandlers = ({
 
     if (draggingGroupRef.current && draggingGroupRef.current.connectorId === node.id) {
       const { groupNodeIds, startPosition } = draggingGroupRef.current
-      
+
       const deltaX = node.position.x - startPosition.x
       const deltaY = node.position.y - startPosition.y
-      
+
       if (Math.abs(deltaX) > 0.1 || Math.abs(deltaY) > 0.1) {
         setNodes((currentNodes) => {
           const updatedNodes = currentNodes.map(n => {
-            if (n.id === node.id) {
-              return n
-            }
-            
-            if (n.type === 'partNode' && n.data?.isConfirmed === true) {
-              return n
-            }
-            
+            if (n.id === node.id) return n
+
+            if (n.type === 'partNode' && n.data?.isConfirmed === true) return n
+
             const isInGroup = groupNodeIds.includes(n.id)
-            
+
             if (isInGroup) {
               return {
                 ...n,
@@ -1005,12 +1030,12 @@ export const useNodeHandlers = ({
                 }
               }
             }
-            
+
             return n
           })
-          
+
           draggingGroupRef.current.startPosition = { ...node.position }
-          
+
           return updatedNodes
         })
       }

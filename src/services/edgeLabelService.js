@@ -11,6 +11,7 @@ export const updateEdgeLabels = (
   handleEdgeDeleteFn = null, 
   handleNodeSettingsClickFn = null, 
   handleNodeConfirmFn = null, 
+  handleNodeAddFn = null,
   targetGroupId = null
 ) => {
   // 1. 유효성 체크
@@ -33,7 +34,8 @@ export const updateEdgeLabels = (
     edgesToShowLabel, 
     handleEdgeDeleteFn, 
     handleNodeSettingsClickFn, 
-    handleNodeConfirmFn
+    handleNodeConfirmFn,
+    handleNodeAddFn
   )
 
   // 6. 그룹 커넥터 노드 생성 및 업데이트
@@ -184,7 +186,7 @@ const determineLabelVisibility = (edgeGroups, allEdges) => {
 }
 
 // 엣지 데이터 업데이트 (핸들러 주입)
-const processEdges = (edges, edgesToShowLabel, onDelete, onSettings, onConfirm) => {
+const processEdges = (edges, edgesToShowLabel, onDelete, onSettings, onConfirm, onAdd) => {
   return edges.map(edge => {
     const edgeData = { ...edge.data }
 
@@ -192,6 +194,7 @@ const processEdges = (edges, edgesToShowLabel, onDelete, onSettings, onConfirm) 
     if (onDelete && !edgeData.onDelete) edgeData.onDelete = onDelete
     if (onSettings) edgeData.onSettingsClick = (id) => onSettings(id || edge.id)
     if (onConfirm) edgeData.onConfirm = () => onConfirm(edge.id)
+    if (onAdd) edgeData.onAdd = () => onAdd(edge.id)
 
     // 확정된 엣지는 라벨 상태 유지, 아니면 계산된 결과 적용
     if (edge.data?.isConfirmed) {

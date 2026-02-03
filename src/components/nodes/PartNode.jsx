@@ -37,18 +37,12 @@ const PartNode = ({ data, isConnectable, id }) => {
 
   // 확정 상태 확인
   const isConfirmed = data.isConfirmed || false
+  const isLockedByParent = data.isLockedByParent || false
 
   return (
     <div className="custom-node-wrapper" data-text-node={data.isTextNode ? "true" : "false"} data-confirmed={isConfirmed ? "true" : "false"}>
       {/* 노드 번호 (우측 상단) */}
       <div className="node-number">{data.number || '1'}</div>
-
-      {/* 제거 버튼 (좌측 상단) - 확정 상태가 아닐 때만 표시 */}
-      {/* {!isConfirmed && (
-        <button className="node-delete-btn" onClick={handleDelete} title="노드 제거">
-          ×
-        </button>
-      )} */}
 
       {/* 노드 제목 영역 (상단 외부) */}
       <div className="node-title-wrapper">
@@ -108,7 +102,7 @@ const PartNode = ({ data, isConnectable, id }) => {
             background: isConfirmed ? '#10b981' : '#2563eb',
             width: 18,
             height: 18,
-            top:'55%',
+            top: '55%',
             left: '-10px',
             opacity: 0,
             pointerEvents: 'all'
@@ -199,6 +193,7 @@ const PartNode = ({ data, isConnectable, id }) => {
           )}
           <div className="node-step-header">
             <div className="node-step-label">{data.step || 'STEP.'}</div>
+            <div className="node-process">{data.process || '-'}</div>
             {/* 설정 버튼 (우측 상단) */}
             <button className="node-settings-btn" onClick={handleSettingsClick} title="설정">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -235,16 +230,30 @@ const PartNode = ({ data, isConnectable, id }) => {
                 </button>
               </>
             ) : (
-              <button className="label-edit-btn" onClick={(e) => {
-                e.stopPropagation()
-                if (data.onEdit) {
-                  data.onEdit(id)
-                }
-              }} title="편집">
-                <svg width="28" height="28" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                </svg>
-              </button>
+              // !isLockedByParent && (
+              <>
+                <button className="label-edit-btn" onClick={(e) => {
+                  e.stopPropagation()
+                  if (data.onEdit) {
+                    data.onEdit(id)
+                  }
+                }} title="편집">
+                  <svg width="28" height="28" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+                <button className="label-add-btn" onClick={(e) => {
+                  e.stopPropagation()
+                  if (data.onAdd) {
+                    data.onAdd(id)
+                  }
+                }} title="추가">
+                  <svg width="28" height="28" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </>
+              // )
             )}
           </div>
         </div>

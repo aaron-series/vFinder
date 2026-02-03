@@ -225,7 +225,7 @@ export const useConnectionHandler = ({
         // Edge Label 및 Connector 업데이트
         setEdges(curEdges => {
             setNodes(curNodes => {
-                const { updatedEdges, groupConnectorNodes } = updateEdgeLabelsCallback(curEdges, curNodes, rfInstance, handleEdgeDelete, handleNodeSettingsClick, handleNodeConfirm, null)
+                const { updatedEdges, groupConnectorNodes } = updateEdgeLabelsCallback(curEdges, curNodes, rfInstance, handleEdgeDelete, handleNodeSettingsClick, handleNodeConfirm, null, null)
                 
                 const filteredNodes = curNodes.filter(n => n && n.type !== 'groupConnector')
                 const existingConnectorMap = new Map(curNodes.filter(n => n && n.type === 'groupConnector').map(n => [n.id, n]))

@@ -42,10 +42,10 @@ export const useSelectionHandler = ({
             setSettingsData(settingsData)
 
             if (addedPartsIds && Array.isArray(addedPartsIds)) {
-              const savedAddedParts = currentNodes.filter(n =>
-                n && addedPartsIds.includes(n.id) && n.type === 'partNode'
-              )
-              setAddedParts(savedAddedParts)
+              // const savedAddedParts = currentNodes.filter(n =>
+              //   n && addedPartsIds.includes(n.id) && n.type === 'partNode'
+              // )
+              setAddedParts(addedPartsIds)
             } else {
               setAddedParts([])
             }

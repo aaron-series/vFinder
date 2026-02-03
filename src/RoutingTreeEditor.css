@@ -973,6 +973,7 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
   z-index: 10;
   position: relative;
+  cursor: pointer;
 }
 
 /* 확정된 그룹 라벨 박스 */
@@ -1073,7 +1074,13 @@
 .node-step-label {
   font-weight: 600;
   color: #2563eb;
-  font-size: 14px;
+  font-size: 15px;
+}
+
+.node-process {
+  font-size: 15px;
+  color: #6b7280;
+  font-weight: bold;
 }
 
 /* 라벨 박스 내부의 설정 버튼 */
@@ -1111,6 +1118,9 @@
   outline: none;
   transition: all 0.2s ease;
   background-color: #f9fafb;
+  white-space: pre-line;   /* 자동 줄바꿈 */
+  word-break: break-word;  /* 자동 줄바꿈(단어 단위) */
+  overflow-wrap: break-word; /* 자동 줄바꿈(강제) */
 }
 
 .node-step-input::placeholder {
@@ -1132,6 +1142,9 @@
 .node-step-input[readonly] {
   background-color: #f3f4f6;
   cursor: not-allowed;
+  white-space: pre-line;   /* 자동 줄바꿈 */
+  word-break: break-word;  /* 자동 줄바꿈(단어 단위) */
+  overflow-wrap: break-word; /* 자동 줄바꿈(강제) */
 }
 
 /* 라벨 액션 버튼 */

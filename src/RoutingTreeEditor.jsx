@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import ReactFlow, { Controls, Background, useNodesState, useEdgesState, ReactFlowProvider } from 'reactflow'
 import 'reactflow/dist/style.css'
 import useRoutingStore from './store/useRoutingStore'
-import { NODE_WIDTH, NODE_HEIGHT, INITIAL_SETTINGS_DATA } from './constants'
+import { NODE_WIDTH, NODE_HEIGHT, INITIAL_SETTINGS_DATA, ZOOM, ZOOM_MIN, ZOOM_MAX } from './constants'
 import { syncConnectorPositions, calculateConnectorPosition } from './services/connectorService'
 import { updateEdgeLabels } from './services/edgeLabelService'
 import { exportImage } from './services/exportService'
@@ -47,8 +47,8 @@ function EditorContent() {
   // Callbacks
   const calculateConnectorPositionCallback = useCallback((connectedEdges, currentNodes, rfInst) => 
     calculateConnectorPosition(connectedEdges, currentNodes, rfInst), [])
-  const updateEdgeLabelsCallback = useCallback((currentEdges, currentNodes, rfInst, onDelete, onSettings, onConfirm, targetGroup) => 
-    updateEdgeLabels(currentEdges, currentNodes, rfInst, onDelete, onSettings, onConfirm, targetGroup), [])
+  const updateEdgeLabelsCallback = useCallback((currentEdges, currentNodes, rfInst, onDelete, onSettings, onConfirm, onAdd, targetGroup) => 
+    updateEdgeLabels(currentEdges, currentNodes, rfInst, onDelete, onSettings, onConfirm, onAdd, targetGroup), [])
   const syncConnectorPositionsCallback = useCallback((nodes, edges) => 
     syncConnectorPositions(nodes, edges, rfInstance), [rfInstance])
 
@@ -65,7 +65,7 @@ function EditorContent() {
 
   // 3. Node Handlers (편집/확정/삭제)
   const {
-    handleNodeStepChange, handleNodeDelete, handleNodeEdit, handleNodeConfirm,
+    handleNodeStepChange, handleNodeDelete, handleNodeEdit, handleNodeConfirm, handleNodeAdd,
     onNodeDragStart, onNodeDrag, onNodeDragStop
   } = useNodeHandlers({
     nodes, edges, setNodes, setEdges, rfInstance, settingsDataRef, addedPartsRef,
@@ -140,10 +140,10 @@ function EditorContent() {
             onInit={setRfInstance}
             onPaneClick={() => { setShowSettingsPanel(false); setSelectedNodeId(null); }}
             nodeTypes={nodeTypes} edgeTypes={edgeTypes}
-            defaultViewport={{ x: 0, y: 0, zoom: 0.5 }} minZoom={0.1} maxZoom={2}
+            defaultViewport={{ x: 0, y: 0, zoom: ZOOM }} minZoom={ZOOM_MIN} maxZoom={ZOOM_MAX}
             attributionPosition="bottom-left"
             connectionLineStyle={{ stroke: '#2563eb', strokeWidth: 2 }}
-            connectionLineType={connectionLineType} connectionRadius={60} autoPanOnConnect={true}
+            connectionLineType={connectionLineType} connectionRadius={60} autoPanOnConnect={true} deleteKeyCode={null}
           >
             <Background color="#aaa" gap={16} />
             <Controls />

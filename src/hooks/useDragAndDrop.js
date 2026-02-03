@@ -61,7 +61,7 @@ export const useDragAndDrop = ({
             thumbnail: draggedPart.thumbnail,
             isTextNode: isTextPart,
             text: isTextPart ? '' : undefined,
-            step: 'STEP.',
+            step: 'STEP',
             stepValue: '',
             hasConnectedEdge: false,
             isConfirmed: false,

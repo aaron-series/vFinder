@@ -166,6 +166,7 @@ const CustomEdge = ({
               {/* B. 헤더 (STEP 라벨 + 설정 버튼) */}
               <div className="node-step-header">
                 <div className="node-step-label">{data?.step || 'STEP.'}</div>
+                <div className="node-process">{data?.process || '-'}</div>
                 {data?.onSettingsClick && (
                   <IconButton
                     className="node-settings-btn"
@@ -201,16 +202,18 @@ const CustomEdge = ({
                     <CheckIcon />
                   </IconButton>
                 ) : (
-                  <IconButton
-                    className="label-edit-btn"
-                    onClick={onEditClick}
-                    title={data?.isGroupLabel ? "그룹 편집" : "편집"}
-                  >
-                    <EditIcon />
-                  </IconButton>
+                  // !data?.isLockedByParent && (
+                    <IconButton
+                      className="label-edit-btn"
+                      onClick={onEditClick}
+                      title={data?.isGroupLabel ? "그룹 편집" : "편집"}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  // )
                 )}
-                {data?.isConfirmed
-                && (
+                {data?.isConfirmed && (
+                // !data?.isLockedByParent && (
                   <IconButton
                     className="label-add-btn"
                     onClick={() => data?.onAdd && data.onAdd(id)}
@@ -218,8 +221,7 @@ const CustomEdge = ({
                   >
                     <PlusIcon />
                   </IconButton>
-                )
-                }
+                )}
               </div>
             </div>
           </EdgeLabelRenderer>
